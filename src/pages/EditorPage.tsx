@@ -51,7 +51,6 @@ import {
   updateTemplatePage,
   updateTemplatePageRoot,
 } from '../utils/templatePages';
-import { PageBackgroundSurface } from '../components/editor/PageBackgroundSurface';
 import { generateTemplateDocument, getPdfRenderPixelSize } from '../utils/templatePdf';
 
 const ZOOM_MIN = 30;
@@ -70,7 +69,7 @@ function EditorDropCanvas({
   pageW,
   pageH,
   marginPx,
-  template,
+  background,
   zoomScale,
   previewCtx,
   selectedBlockId,
@@ -86,7 +85,7 @@ function EditorDropCanvas({
   pageW: number;
   pageH: number;
   marginPx: number;
-  template: DocTemplate;
+  background: string;
   zoomScale: number;
   previewCtx: TemplateContext;
   selectedBlockId: string | null;
@@ -134,24 +133,19 @@ function EditorDropCanvas({
               >
                 {page.kind === 'dynamic' && (
                   <>
-                    <div aria-hidden>
-                      <PageBackgroundSurface
-                        template={template}
-                        className="editor-page-ghost editor-page-ghost-2"
-                        style={{ width: pageW, height: pageH }}
-                      />
-                    </div>
-                    <div aria-hidden>
-                      <PageBackgroundSurface
-                        template={template}
-                        className="editor-page-ghost editor-page-ghost-1"
-                        style={{ width: pageW, height: pageH }}
-                      />
-                    </div>
+                    <div
+                      className="editor-page-ghost editor-page-ghost-2"
+                      style={{ width: pageW, height: pageH, background }}
+                      aria-hidden
+                    />
+                    <div
+                      className="editor-page-ghost editor-page-ghost-1"
+                      style={{ width: pageW, height: pageH, background }}
+                      aria-hidden
+                    />
                   </>
                 )}
-                <PageBackgroundSurface
-                  template={template}
+                <div
                   className={`editor-template-page-slot${isPageSelected ? ' is-page-selected' : ''}`}
                   style={{
                     width: pageW,
@@ -162,6 +156,7 @@ function EditorDropCanvas({
                     boxSizing: 'border-box',
                     flexShrink: 0,
                     overflow: 'hidden',
+                    background,
                   }}
                   onClick={(e) => {
                     if (e.target === e.currentTarget) onPageBackground(pageIndex);
@@ -180,7 +175,7 @@ function EditorDropCanvas({
                         : undefined
                     }
                   />
-                </PageBackgroundSurface>
+                </div>
               </div>
 
               {pageIndex < pages.length - 1 && (
@@ -341,10 +336,8 @@ export function EditorPage() {
   const history = useUndoHistory<DocTemplate | null>(null);
   const selectedBlockIdRef = useRef<string | null>(null);
   selectedBlockIdRef.current = selectedBlockId;
-  const draftIdRef = useRef<string | null>(null);
 
   const draft = history.present;
-  draftIdRef.current = draft?.id ?? null;
 
   useEffect(() => {
     if (!allTemplates?.length || activeId) return;
@@ -353,16 +346,16 @@ export function EditorPage() {
 
   useEffect(() => {
     if (!activeId) return;
-    if (draftIdRef.current === activeId) return;
     const tpl = resolveTemplate(activeId, userTemplates);
-    if (!tpl) return;
-    const copy = normalizeTemplate(JSON.parse(JSON.stringify(tpl)) as DocTemplate);
-    if (!copy.format) copy.format = 'a4';
-    if (copy.margin === undefined) copy.margin = 12;
-    history.reset(copy);
-    setSelectedBlockId(null);
-    setActivePageIndex(0);
-    setSaved(true);
+    if (tpl) {
+      const copy = normalizeTemplate(JSON.parse(JSON.stringify(tpl)) as DocTemplate);
+      if (!copy.format) copy.format = 'a4';
+      if (copy.margin === undefined) copy.margin = 12;
+      history.reset(copy);
+      setSelectedBlockId(null);
+      setActivePageIndex(0);
+      setSaved(true);
+    }
   }, [activeId, userTemplates]);
 
   const basePreviewCtx = useMemo((): TemplateContext => {
@@ -585,44 +578,22 @@ export function EditorPage() {
   };
 
   const createNew = async () => {
-    const tpl = normalizeTemplate(newEmptyTemplate());
-    history.reset(tpl);
+    const tpl = newEmptyTemplate();
+    await db.templates.add(tpl);
     setActiveId(tpl.id);
-    setSelectedBlockId(null);
-    setActivePageIndex(0);
-    setSaved(true);
-    try {
-      await db.templates.add(tpl);
-    } catch (err) {
-      console.error('[Atelier OS] createNew', err);
-      alert('Impossible de créer le modèle. Réessayez dans quelques secondes.');
-      const fallbackId = resolveDefaultEditorTemplateId(userTemplates);
-      setActiveId(fallbackId);
-      const fallback = resolveTemplate(fallbackId, userTemplates);
-      history.reset(fallback ? normalizeTemplate(JSON.parse(JSON.stringify(fallback)) as DocTemplate) : null);
-    }
   };
 
   const createCopy = async () => {
     if (!draft) return;
-    const copy = normalizeTemplate({
-      ...structuredClone(draft),
+    const copy = {
+      ...JSON.parse(JSON.stringify(draft)),
       id: uid('tpl'),
       nom: isReadonly ? `${draft.nom} (personnalisé)` : `${draft.nom} (copie)`,
       createdAt: now(),
       updatedAt: now(),
-    });
-    history.reset(copy);
+    } as DocTemplate;
+    await db.templates.add(copy);
     setActiveId(copy.id);
-    setSelectedBlockId(null);
-    setActivePageIndex(0);
-    setSaved(true);
-    try {
-      await db.templates.add(copy);
-    } catch (err) {
-      console.error('[Atelier OS] createCopy', err);
-      alert('Impossible de dupliquer le modèle. Réessayez dans quelques secondes.');
-    }
   };
 
   const requestRemove = () => {
@@ -823,7 +794,7 @@ export function EditorPage() {
                   pageW={pageW}
                   pageH={pageH}
                   marginPx={marginPx}
-                  template={draft}
+                  background={draft.background}
                   zoomScale={zoomScale}
                   previewCtx={previewCtx}
                   selectedBlockId={selectedBlockId}
@@ -850,14 +821,11 @@ export function EditorPage() {
               }
               properties={
                 <>
-                  {activePage && !isReadonly && !selectedBlockId && draft && (
+                  {activePage && !isReadonly && !selectedBlockId && (
                     <EditorPageSettings
                       page={activePage}
                       pageIndex={activePageIndex}
                       pageCount={templatePages.length}
-                      template={draft}
-                      templateId={draft.id}
-                      onPatchTemplate={(patch) => patchDraft((t) => ({ ...t, ...patch }))}
                       onKindChange={handlePageKindChange}
                       onRemove={() => handleRemovePage(activePage.id)}
                     />
@@ -926,7 +894,7 @@ export function EditorPage() {
                       pageW={pageW}
                       pageH={pageH}
                       marginPx={marginPx}
-                      template={draft}
+                      background={draft.background}
                       previewCtx={previewCtx}
                       readonly={isReadonly}
                       onSelectPage={handleSelectPageFromPreview}

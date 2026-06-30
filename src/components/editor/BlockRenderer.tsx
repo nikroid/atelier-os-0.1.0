@@ -493,14 +493,18 @@ export function BlockRenderer({
   }
 
   if (block.type === 'rectangle') {
-    return wrap(null, 'tpl-rectangle', {
+    const rectStyle: CSSProperties = {
       height: block.rectHeight ?? 24,
       width: block.width ?? '100%',
       maxWidth: '100%',
       alignSelf: block.selfAlign ?? 'center',
-      backgroundColor: block.backgroundColor ?? '#e8e4dc',
       border: `${block.borderWidth ?? 1}px solid ${block.borderColor ?? '#d4d0c8'}`,
-    });
+    };
+    const bgType = block.blockBgType ?? (block.backgroundColor ? 'color' : 'none');
+    if (bgType === 'none') {
+      rectStyle.backgroundColor = 'transparent';
+    }
+    return wrap(null, 'tpl-rectangle', rectStyle);
   }
 
   if (block.type === 'image') {

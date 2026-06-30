@@ -85,8 +85,8 @@ export async function migrateLegacyImagesToMedia(): Promise<void> {
 
   // Re-link entity ids for media created during migration
   for (const work of await db.works.toArray()) {
-    for (const groupId of work.imageIds ?? []) {
-      await updateImageGroupEntity(groupId, 'work', work.id);
+    for (let i = 0; i < work.imageIds.length; i++) {
+      await updateImageGroupEntity(work.imageIds[i], 'work', work.id);
     }
   }
   for (const artist of await db.artists.toArray()) {

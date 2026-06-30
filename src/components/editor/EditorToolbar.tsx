@@ -148,9 +148,7 @@ export function EditorToolbar({
               type="color"
               disabled={isReadonly}
               value={draft?.background ?? '#f5f2ed'}
-              onChange={(e) =>
-                onPatchDraft((t) => ({ ...t, background: e.target.value, pageBgType: 'color' }))
-              }
+              onChange={(e) => onPatchDraft((t) => ({ ...t, background: e.target.value }))}
             />
           </label>
           <div className="editor-toolbar-secondary-actions">

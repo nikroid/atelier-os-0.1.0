@@ -1,4 +1,4 @@
-const CACHE = 'atelier-os-v2-v616';
+const CACHE = 'atelier-os-v2';
 const BASE = new URL('./', self.location.href).pathname;
 
 function asset(path) {

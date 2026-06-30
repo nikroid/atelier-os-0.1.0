@@ -170,7 +170,6 @@ async function collectReferencedGroupIdsFromDb(): Promise<Set<string>> {
     if (artist.photoId) refs.add(artist.photoId);
   }
   for (const template of templates) {
-    if (template.pageBgImageGroupId) refs.add(template.pageBgImageGroupId);
     collectBlockGroupIds(template.root, refs);
     for (const page of template.pages ?? []) {
       collectBlockGroupIds(page.root, refs);

@@ -1,7 +1,10 @@
 import { type CSSProperties, type ReactNode } from 'react';
 import type { DocBlock } from '../../types/templates';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
-import { blockBackgroundStyle } from '../../utils/blockBackground';
+import {
+  getEffectiveBlockBgType,
+  resolveBlockBackgroundStylePlain,
+} from '../../utils/blockBackground';
 
 interface BlockShellProps {
   block: DocBlock;
@@ -35,14 +38,14 @@ export function BlockShell({
   dragHandlers,
   children,
 }: BlockShellProps) {
-  const bgType = block.blockBgType ?? 'none';
+  const bgType = getEffectiveBlockBgType(block);
   const bgUrl = useMediaUrl(
     bgType === 'image' ? block.blockBgImageGroupId : null,
     'display',
   );
   const merged: CSSProperties = {
     ...style,
-    ...blockBackgroundStyle(block, bgUrl),
+    ...resolveBlockBackgroundStylePlain(block, bgUrl),
   };
 
   if (!isEdit) {

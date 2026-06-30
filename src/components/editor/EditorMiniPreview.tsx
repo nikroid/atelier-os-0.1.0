@@ -1,6 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { DocTemplate } from '../../types/templates';
-import { PageBackgroundSurface } from './PageBackgroundSurface';
 
 export const PREVIEW_SCALE = 0.22;
 const GHOST_OFFSET_2 = 28;
@@ -9,7 +7,7 @@ interface EditorMiniPreviewProps {
   pageW: number;
   pageH: number;
   marginPx: number;
-  template: DocTemplate;
+  background: string;
   dynamic?: boolean;
   selected?: boolean;
   children: ReactNode;
@@ -20,7 +18,7 @@ export function EditorMiniPreview({
   pageW,
   pageH,
   marginPx,
-  template,
+  background,
   dynamic,
   selected,
   children,
@@ -39,6 +37,7 @@ export function EditorMiniPreview({
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
+    background,
   };
 
   return (
@@ -58,25 +57,21 @@ export function EditorMiniPreview({
         <div className={`editor-preview-mini-stack${dynamic ? ' is-dynamic' : ''}`}>
           {dynamic && (
             <>
-              <div aria-hidden>
-                <PageBackgroundSurface
-                  template={template}
-                  className="editor-preview-mini-ghost editor-preview-mini-ghost-2"
-                  style={{ width: pageW, height: pageH }}
-                />
-              </div>
-              <div aria-hidden>
-                <PageBackgroundSurface
-                  template={template}
-                  className="editor-preview-mini-ghost editor-preview-mini-ghost-1"
-                  style={{ width: pageW, height: pageH }}
-                />
-              </div>
+              <div
+                className="editor-preview-mini-ghost editor-preview-mini-ghost-2"
+                style={{ width: pageW, height: pageH, background }}
+                aria-hidden
+              />
+              <div
+                className="editor-preview-mini-ghost editor-preview-mini-ghost-1"
+                style={{ width: pageW, height: pageH, background }}
+                aria-hidden
+              />
             </>
           )}
-          <PageBackgroundSurface template={template} className="tpl-page tpl-page-mini" style={pageStyle}>
+          <div className="tpl-page tpl-page-mini" style={pageStyle}>
             {children}
-          </PageBackgroundSurface>
+          </div>
         </div>
       </div>
     </div>

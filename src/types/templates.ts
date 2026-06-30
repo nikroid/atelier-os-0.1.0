@@ -117,9 +117,6 @@ export interface DocTemplate {
   format: PageFormat;
   margin: number;
   background: string;
-  pageBgType?: BlockBackgroundType;
-  pageBgImageGroupId?: string;
-  pageBgImageFit?: BlockBackgroundImageFit;
   /** @deprecated Conservé pour compatibilité — utiliser `pages[0].root`. */
   root: DocBlock;
   /** Pages du modèle (simple = 1×, dynamique = répétée par œuvre sélectionnée). */

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FONT_FAMILIES, FONT_SIZE_PRESETS } from '../../utils/fonts';
-import type { DocBlock, ImageDropShadow } from '../../types/templates';
+import type { BlockBackgroundType, DocBlock, ImageDropShadow } from '../../types/templates';
 import { FIELD_CATALOG, isImageField, type TemplateContext } from '../../utils/templateFields';
 import { resolveShortcodes, shortcodeTag, TEXT_SHORTCODE_FIELDS } from '../../utils/templateShortcodes';
 import { IconToggleGroup } from './IconToggleGroup';
@@ -11,9 +11,13 @@ import {
   imageObjectFitApplies,
   normalizeImageDropShadow,
 } from '../../utils/imageBlockLayout';
-import { blockSupportsBackground, getBlockBackgroundValues } from '../../utils/blockBackground';
+import {
+  blockSupportsBackground,
+  getEffectiveBlockBgColor,
+  getEffectiveBlockBgType,
+} from '../../utils/blockBackground';
 import { deleteImageGroup, saveImageGroupFromFile } from '../../utils/mediaStore';
-import { BackgroundControls } from './BackgroundControls';
+import { useMediaUrl } from '../../hooks/useMediaUrl';
 
 type CssUnit = 'px' | '%' | 'rem' | 'em' | 'auto';
 
@@ -341,6 +345,124 @@ interface BlockPropertiesProps {
   onDuplicate?: () => void;
 }
 
+function BlockBackgroundControls({
+  block,
+  templateId,
+  onChange,
+}: {
+  block: DocBlock;
+  templateId: string;
+  onChange: (patch: Partial<DocBlock>) => void;
+}) {
+  const bgType = getEffectiveBlockBgType(block);
+  const previewUrl = useMediaUrl(
+    bgType === 'image' ? block.blockBgImageGroupId : null,
+    'thumb',
+  );
+  const [uploading, setUploading] = useState(false);
+
+  const setBgType = (type: BlockBackgroundType) => {
+    if (type === 'none') {
+      onChange({ blockBgType: 'none', blockBgImageGroupId: undefined });
+      return;
+    }
+    if (type === 'color') {
+      onChange({
+        blockBgType: 'color',
+        blockBgColor: getEffectiveBlockBgColor(block),
+        blockBgImageGroupId: undefined,
+      });
+      return;
+    }
+    onChange({ blockBgType: 'image', blockBgColor: undefined });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !templateId) return;
+    setUploading(true);
+    try {
+      const oldId = block.blockBgImageGroupId;
+      const groupId = await saveImageGroupFromFile(file, 'template', templateId);
+      onChange({ blockBgType: 'image', blockBgImageGroupId: groupId });
+      if (oldId && oldId !== groupId) void deleteImageGroup(oldId);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const removeImage = () => {
+    const oldId = block.blockBgImageGroupId;
+    onChange({ blockBgType: 'none', blockBgImageGroupId: undefined });
+    if (oldId) void deleteImageGroup(oldId);
+  };
+
+  return (
+    <details className="block-spacing-details" open>
+      <summary>Arrière-plan</summary>
+      <div className="bg-type-row">
+        {(['none', 'color', 'image'] as BlockBackgroundType[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={`btn btn-sm ${bgType === t ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setBgType(t)}
+          >
+            {t === 'none' ? 'Aucun' : t === 'color' ? 'Couleur' : 'Image'}
+          </button>
+        ))}
+      </div>
+      {bgType === 'color' && (
+        <label>
+          Couleur
+          <input
+            type="color"
+            value={getEffectiveBlockBgColor(block)}
+            onChange={(e) =>
+              onChange({
+                blockBgType: 'color',
+                blockBgColor: e.target.value,
+                backgroundColor: block.type === 'rectangle' ? e.target.value : undefined,
+              })
+            }
+          />
+        </label>
+      )}
+      {bgType === 'image' && (
+        <>
+          <label className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', marginTop: '0.5rem' }}>
+            {uploading ? 'Import…' : block.blockBgImageGroupId ? 'Remplacer l\'image' : 'Choisir une image'}
+            <input type="file" accept="image/*" hidden onChange={handleImageUpload} disabled={uploading} />
+          </label>
+          {previewUrl && (
+            <div className="block-bg-preview">
+              <img src={previewUrl} alt="" />
+            </div>
+          )}
+          <label>
+            Ajustement
+            <select
+              value={block.blockBgImageFit ?? 'cover'}
+              onChange={(e) =>
+                onChange({ blockBgImageFit: e.target.value as DocBlock['blockBgImageFit'] })
+              }
+            >
+              <option value="cover">Remplir (cover)</option>
+              <option value="contain">Contenir (contain)</option>
+            </select>
+          </label>
+          {block.blockBgImageGroupId && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={removeImage}>
+              Retirer l'image
+            </button>
+          )}
+        </>
+      )}
+    </details>
+  );
+}
+
 function FontControls({
   block,
   onChange,
@@ -586,19 +708,7 @@ export function BlockProperties({
       </details>
 
       {blockSupportsBackground(block) && templateId && (
-        <BackgroundControls
-          title="Arrière-plan du conteneur"
-          templateId={templateId}
-          values={getBlockBackgroundValues(block)}
-          onChange={(values) =>
-            onChange({
-              blockBgType: values.bgType,
-              blockBgColor: values.bgColor,
-              blockBgImageGroupId: values.imageGroupId,
-              blockBgImageFit: values.imageFit,
-            })
-          }
-        />
+        <BlockBackgroundControls block={block} templateId={templateId} onChange={onChange} />
       )}
 
       {block.type === 'text' && (
@@ -694,14 +804,6 @@ export function BlockProperties({
               max={200}
               value={block.rectHeight ?? 24}
               onChange={(e) => onChange({ rectHeight: parseInt(e.target.value) || 24 })}
-            />
-          </label>
-          <label>
-            Fond
-            <input
-              type="color"
-              value={block.backgroundColor ?? '#e8e4dc'}
-              onChange={(e) => onChange({ backgroundColor: e.target.value })}
             />
           </label>
           <label>

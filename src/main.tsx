@@ -53,36 +53,20 @@ if ('serviceWorker' in navigator) {
   }
 }
 
-function renderApp(): void {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  );
-}
-
-async function runPostBootTasks(): Promise<void> {
-  try {
-    await migrateLegacyImagesToMedia();
-    await cleanupOrphanMedia();
-    await ensureDefaultSettings();
-    await cleanupBuiltinTemplatesFromDb(
+seedDemoData()
+  .then(() => migrateLegacyImagesToMedia())
+  .then(() => cleanupOrphanMedia())
+  .then(() => ensureDefaultSettings())
+  .then(() =>
+    cleanupBuiltinTemplatesFromDb(
       () => db.templates.toArray(),
       (id) => db.templates.delete(id),
+    ),
+  )
+  .then(() => {
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
     );
-  } catch (err) {
-    console.error('[Atelier OS] Tâches de démarrage en arrière-plan', err);
-  }
-}
-
-async function boot(): Promise<void> {
-  try {
-    await seedDemoData();
-  } catch (err) {
-    console.error('[Atelier OS] seedDemoData', err);
-  }
-  renderApp();
-  void runPostBootTasks();
-}
-
-void boot();
+  });
