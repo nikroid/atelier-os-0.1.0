@@ -54,7 +54,7 @@ export function SettingsPage() {
         {!isConfigured ? (
           <p className="hint">
             L’envoi de mails nécessite un Client ID Google. Ajoutez{' '}
-            <code>VITE_GOOGLE_CLIENT_ID</code> en local ou sur Netlify — voir{' '}
+            <code>VITE_GOOGLE_CLIENT_ID</code> en local ou sur GitHub Actions — voir{' '}
             <code>DEPLOY.md</code>.
           </p>
         ) : isConnected && !isExpired ? (
@@ -75,6 +75,10 @@ export function SettingsPage() {
               {isExpired
                 ? 'Session expirée. Reconnectez Gmail pour continuer à envoyer des mails.'
                 : 'Connectez Gmail pour envoyer des mails aux contacts depuis Atelier OS.'}
+            </p>
+            <p className="hint">
+              La connexion Gmail ouvre une fenêtre Google — utilisez <strong>Chrome</strong> ou{' '}
+              <strong>Safari</strong> (le navigateur intégré à Cursor bloque souvent les popups).
             </p>
             <button
               type="button"
@@ -102,6 +106,10 @@ export function SettingsPage() {
                 </li>
                 <li>
                   <strong>Utilisateurs test</strong> : ton Gmail ajouté (mode Test)
+                </li>
+                <li>
+                  <strong>Popups</strong> : autoriser pour <code>localhost:5191</code> si le message
+                  « popup » apparaît
                 </li>
                 <li>
                   Sur l’écran Google « app non validée » → cliquer <strong>Continuer</strong>

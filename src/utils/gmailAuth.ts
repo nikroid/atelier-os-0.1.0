@@ -40,14 +40,28 @@ function loadGoogleScript(): Promise<void> {
 }
 
 function parseGisError(err: unknown): string {
-  if (err instanceof Error) return err.message;
+  const message =
+    err instanceof Error
+      ? err.message
+      : typeof err === 'string'
+        ? err
+        : typeof err === 'object' && err !== null && 'message' in err
+          ? String((err as { message: unknown }).message)
+          : '';
+
+  if (/popup/i.test(message)) {
+    return 'Popup bloquée par le navigateur. Ouvrez l’app dans Chrome ou Safari (pas le navigateur Cursor), autorisez les popups pour localhost:5191, puis recliquez Connecter Gmail.';
+  }
+
+  if (err instanceof Error && !message.includes('popup')) return err.message;
+
   if (typeof err === 'object' && err !== null && 'type' in err) {
     const type = String((err as { type: string }).type);
     if (type === 'popup_closed') {
       return 'Connexion interrompue. Fermez l’onglet Google resté ouvert, puis réessayez.';
     }
     if (type === 'popup_failed_to_open') {
-      return 'Popup bloqué. Autorisez les popups pour localhost:5191.';
+      return 'Popup bloquée. Utilisez Chrome/Safari et autorisez les popups pour localhost:5191.';
     }
     return `Erreur Google (${type})`;
   }
