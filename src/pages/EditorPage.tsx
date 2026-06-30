@@ -341,8 +341,10 @@ export function EditorPage() {
   const history = useUndoHistory<DocTemplate | null>(null);
   const selectedBlockIdRef = useRef<string | null>(null);
   selectedBlockIdRef.current = selectedBlockId;
+  const draftIdRef = useRef<string | null>(null);
 
   const draft = history.present;
+  draftIdRef.current = draft?.id ?? null;
 
   useEffect(() => {
     if (!allTemplates?.length || activeId) return;
@@ -351,16 +353,16 @@ export function EditorPage() {
 
   useEffect(() => {
     if (!activeId) return;
+    if (draftIdRef.current === activeId) return;
     const tpl = resolveTemplate(activeId, userTemplates);
-    if (tpl) {
-      const copy = normalizeTemplate(JSON.parse(JSON.stringify(tpl)) as DocTemplate);
-      if (!copy.format) copy.format = 'a4';
-      if (copy.margin === undefined) copy.margin = 12;
-      history.reset(copy);
-      setSelectedBlockId(null);
-      setActivePageIndex(0);
-      setSaved(true);
-    }
+    if (!tpl) return;
+    const copy = normalizeTemplate(JSON.parse(JSON.stringify(tpl)) as DocTemplate);
+    if (!copy.format) copy.format = 'a4';
+    if (copy.margin === undefined) copy.margin = 12;
+    history.reset(copy);
+    setSelectedBlockId(null);
+    setActivePageIndex(0);
+    setSaved(true);
   }, [activeId, userTemplates]);
 
   const basePreviewCtx = useMemo((): TemplateContext => {
@@ -583,22 +585,44 @@ export function EditorPage() {
   };
 
   const createNew = async () => {
-    const tpl = newEmptyTemplate();
-    await db.templates.add(tpl);
+    const tpl = normalizeTemplate(newEmptyTemplate());
+    history.reset(tpl);
     setActiveId(tpl.id);
+    setSelectedBlockId(null);
+    setActivePageIndex(0);
+    setSaved(true);
+    try {
+      await db.templates.add(tpl);
+    } catch (err) {
+      console.error('[Atelier OS] createNew', err);
+      alert('Impossible de créer le modèle. Réessayez dans quelques secondes.');
+      const fallbackId = resolveDefaultEditorTemplateId(userTemplates);
+      setActiveId(fallbackId);
+      const fallback = resolveTemplate(fallbackId, userTemplates);
+      history.reset(fallback ? normalizeTemplate(JSON.parse(JSON.stringify(fallback)) as DocTemplate) : null);
+    }
   };
 
   const createCopy = async () => {
     if (!draft) return;
-    const copy = {
-      ...JSON.parse(JSON.stringify(draft)),
+    const copy = normalizeTemplate({
+      ...structuredClone(draft),
       id: uid('tpl'),
       nom: isReadonly ? `${draft.nom} (personnalisé)` : `${draft.nom} (copie)`,
       createdAt: now(),
       updatedAt: now(),
-    } as DocTemplate;
-    await db.templates.add(copy);
+    });
+    history.reset(copy);
     setActiveId(copy.id);
+    setSelectedBlockId(null);
+    setActivePageIndex(0);
+    setSaved(true);
+    try {
+      await db.templates.add(copy);
+    } catch (err) {
+      console.error('[Atelier OS] createCopy', err);
+      alert('Impossible de dupliquer le modèle. Réessayez dans quelques secondes.');
+    }
   };
 
   const requestRemove = () => {

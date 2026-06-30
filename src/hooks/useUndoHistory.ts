@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 const DEFAULT_MAX = 40;
 
@@ -43,12 +43,15 @@ export function useUndoHistory<T>(initial: T, maxSize = DEFAULT_MAX) {
     return true;
   }, []);
 
-  return {
-    present,
-    setPresent,
-    push,
-    reset,
-    undo,
-    redo,
-  };
+  return useMemo(
+    () => ({
+      present,
+      setPresent,
+      push,
+      reset,
+      undo,
+      redo,
+    }),
+    [present, setPresent, push, reset, undo, redo],
+  );
 }
