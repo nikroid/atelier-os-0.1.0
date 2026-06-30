@@ -68,6 +68,27 @@ function parseGisError(err: unknown): string {
   return 'Connexion Gmail échouée';
 }
 
+async function tokenScopes(accessToken: string): Promise<string> {
+  const res = await fetch(
+    `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+  );
+  if (!res.ok) return '';
+  const data = (await res.json()) as { scope?: string };
+  return data.scope ?? '';
+}
+
+export async function tokenHasGmailSendScope(accessToken: string): Promise<boolean> {
+  const scopes = await tokenScopes(accessToken);
+  return scopes.includes('gmail.send');
+}
+
+async function assertGmailSendScope(accessToken: string): Promise<void> {
+  if (await tokenHasGmailSendScope(accessToken)) return;
+  throw new Error(
+    'Permission d’envoi Gmail non accordée. Déconnectez Gmail dans Paramètres, vérifiez que le scope gmail.send est activé dans Google Cloud, puis reconnectez-vous en cochant toutes les autorisations.',
+  );
+}
+
 async function fetchGoogleEmail(accessToken: string): Promise<string> {
   const userinfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -134,6 +155,7 @@ export async function getGmailAuth(): Promise<GmailAuth | undefined> {
 
 export async function connectGmail(): Promise<GmailAuth> {
   const { accessToken, expiresAt } = await requestAccessToken('consent');
+  await assertGmailSendScope(accessToken);
   const email = await fetchGoogleEmail(accessToken);
   const auth: GmailAuth = {
     id: GMAIL_AUTH_ID,
@@ -173,12 +195,16 @@ export async function getValidAccessToken(): Promise<string | null> {
 /** Token valide ou reconnexion silencieuse / interactive. */
 export async function ensureGmailAccessToken(interactive = true): Promise<string> {
   const existing = await getValidAccessToken();
-  if (existing) return existing;
+  if (existing) {
+    if (await tokenHasGmailSendScope(existing)) return existing;
+    await db.gmailAuth.delete(GMAIL_AUTH_ID);
+  }
 
   const auth = await getGmailAuth();
   if (auth && interactive) {
     try {
-      const { accessToken, expiresAt } = await requestAccessToken();
+      const { accessToken, expiresAt } = await requestAccessToken('consent');
+      await assertGmailSendScope(accessToken);
       const email = await fetchGoogleEmail(accessToken);
       await db.gmailAuth.put({
         ...auth,

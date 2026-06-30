@@ -129,8 +129,17 @@ export async function sendViaGmail(accessToken: string, mime: string): Promise<v
     const payload = (await res.json().catch(() => ({}))) as {
       error?: { message?: string };
     };
-    throw new Error(payload.error?.message ?? `Gmail API erreur ${res.status}`);
+    throw enrichGmailApiError(payload.error?.message ?? `Gmail API erreur ${res.status}`);
   }
+}
+
+function enrichGmailApiError(message: string): Error {
+  if (/insufficient authentication scopes/i.test(message)) {
+    return new Error(
+      'Permissions Gmail insuffisantes. Paramètres → Déconnecter Gmail → reconnecter en acceptant l’accès à l’envoi de mails (scope gmail.send).',
+    );
+  }
+  return new Error(message);
 }
 
 export async function sendGmailMessage(
