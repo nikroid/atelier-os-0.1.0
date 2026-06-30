@@ -18,7 +18,7 @@ export interface Artist {
   site: string;
   instagram: string;
   email: string;
-  photo: string;
+  photoId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,7 +33,7 @@ export interface Work {
   dimensions: string;
   prix: number | null;
   description: string;
-  images: string[];
+  imageIds: string[];
   statut: WorkStatus;
   certificat: boolean;
   createdAt: string;
@@ -76,6 +76,18 @@ export interface AppBackup {
   templates?: import('./templates').DocTemplate[];
   mailTemplates?: import('./mail').MailTemplate[];
   settings?: import('./settings').AppSettings;
+  mediaGroupIds?: string[];
+}
+
+/** Champs legacy dans les sauvegardes v1.x */
+export interface LegacyArtist extends Omit<Artist, 'photoId'> {
+  photo?: string;
+  photoId?: string | null;
+}
+
+export interface LegacyWork extends Omit<Work, 'imageIds'> {
+  images?: string[];
+  imageIds?: string[];
 }
 
 export const CONTACT_CATEGORIES: { value: ContactCategory; label: string }[] = [

@@ -37,6 +37,7 @@ import {
   updateBlock,
 } from '../utils/blockTree';
 import type { TemplateContext } from '../utils/templateFields';
+import { enrichTemplateContext } from '../utils/templateMediaContext';
 import {
   addTemplatePage,
   createTemplatePage,
@@ -50,6 +51,7 @@ import {
   updateTemplatePage,
   updateTemplatePageRoot,
 } from '../utils/templatePages';
+import { PageBackgroundSurface } from '../components/editor/PageBackgroundSurface';
 import { generateTemplateDocument, getPdfRenderPixelSize } from '../utils/templatePdf';
 
 const ZOOM_MIN = 30;
@@ -68,7 +70,7 @@ function EditorDropCanvas({
   pageW,
   pageH,
   marginPx,
-  background,
+  template,
   zoomScale,
   previewCtx,
   selectedBlockId,
@@ -84,7 +86,7 @@ function EditorDropCanvas({
   pageW: number;
   pageH: number;
   marginPx: number;
-  background: string;
+  template: DocTemplate;
   zoomScale: number;
   previewCtx: TemplateContext;
   selectedBlockId: string | null;
@@ -132,19 +134,24 @@ function EditorDropCanvas({
               >
                 {page.kind === 'dynamic' && (
                   <>
-                    <div
-                      className="editor-page-ghost editor-page-ghost-2"
-                      style={{ width: pageW, height: pageH, background }}
-                      aria-hidden
-                    />
-                    <div
-                      className="editor-page-ghost editor-page-ghost-1"
-                      style={{ width: pageW, height: pageH, background }}
-                      aria-hidden
-                    />
+                    <div aria-hidden>
+                      <PageBackgroundSurface
+                        template={template}
+                        className="editor-page-ghost editor-page-ghost-2"
+                        style={{ width: pageW, height: pageH }}
+                      />
+                    </div>
+                    <div aria-hidden>
+                      <PageBackgroundSurface
+                        template={template}
+                        className="editor-page-ghost editor-page-ghost-1"
+                        style={{ width: pageW, height: pageH }}
+                      />
+                    </div>
                   </>
                 )}
-                <div
+                <PageBackgroundSurface
+                  template={template}
                   className={`editor-template-page-slot${isPageSelected ? ' is-page-selected' : ''}`}
                   style={{
                     width: pageW,
@@ -155,7 +162,6 @@ function EditorDropCanvas({
                     boxSizing: 'border-box',
                     flexShrink: 0,
                     overflow: 'hidden',
-                    background,
                   }}
                   onClick={(e) => {
                     if (e.target === e.currentTarget) onPageBackground(pageIndex);
@@ -174,7 +180,7 @@ function EditorDropCanvas({
                         : undefined
                     }
                   />
-                </div>
+                </PageBackgroundSurface>
               </div>
 
               {pageIndex < pages.length - 1 && (
@@ -357,12 +363,24 @@ export function EditorPage() {
     }
   }, [activeId, userTemplates]);
 
-  const previewCtx = useMemo((): TemplateContext => {
+  const basePreviewCtx = useMemo((): TemplateContext => {
     const work = works?.find((w) => w.id === previewWorkId) ?? works?.[0];
     const artist = work ? artistMap.get(work.artisteId) : artists?.[0];
     const exhibition = exhibitions?.find((e) => e.id === previewExpoId) ?? exhibitions?.[0];
     return { work, artist, exhibition };
   }, [works, previewWorkId, artistMap, artists, exhibitions, previewExpoId]);
+
+  const [previewCtx, setPreviewCtx] = useState<TemplateContext>(basePreviewCtx);
+
+  useEffect(() => {
+    let cancelled = false;
+    void enrichTemplateContext(basePreviewCtx).then((ctx) => {
+      if (!cancelled) setPreviewCtx(ctx);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [basePreviewCtx]);
 
   const templatePages = useMemo(
     () => (draft ? getTemplatePages(draft) : []),
@@ -781,7 +799,7 @@ export function EditorPage() {
                   pageW={pageW}
                   pageH={pageH}
                   marginPx={marginPx}
-                  background={draft.background}
+                  template={draft}
                   zoomScale={zoomScale}
                   previewCtx={previewCtx}
                   selectedBlockId={selectedBlockId}
@@ -808,11 +826,14 @@ export function EditorPage() {
               }
               properties={
                 <>
-                  {activePage && !isReadonly && !selectedBlockId && (
+                  {activePage && !isReadonly && !selectedBlockId && draft && (
                     <EditorPageSettings
                       page={activePage}
                       pageIndex={activePageIndex}
                       pageCount={templatePages.length}
+                      template={draft}
+                      templateId={draft.id}
+                      onPatchTemplate={(patch) => patchDraft((t) => ({ ...t, ...patch }))}
                       onKindChange={handlePageKindChange}
                       onRemove={() => handleRemovePage(activePage.id)}
                     />
@@ -821,6 +842,7 @@ export function EditorPage() {
                     <BlockProperties
                       block={selectedBlock}
                       previewCtx={previewCtx}
+                      templateId={draft?.id ?? ''}
                       canDelete={Boolean(
                         selectedBlockId && activePage && selectedBlockId !== activePage.root.id,
                       )}
@@ -880,7 +902,7 @@ export function EditorPage() {
                       pageW={pageW}
                       pageH={pageH}
                       marginPx={marginPx}
-                      background={draft.background}
+                      template={draft}
                       previewCtx={previewCtx}
                       readonly={isReadonly}
                       onSelectPage={handleSelectPageFromPreview}

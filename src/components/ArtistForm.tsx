@@ -5,6 +5,7 @@ export type ArtistFormData = Omit<Artist, 'id' | 'createdAt' | 'updatedAt'>;
 
 interface ArtistFormProps {
   form: ArtistFormData;
+  artistId: string;
   onChange: (form: ArtistFormData) => void;
   onSubmit: () => void;
   onCancel?: () => void;
@@ -13,6 +14,7 @@ interface ArtistFormProps {
 
 export function ArtistForm({
   form,
+  artistId,
   onChange,
   onSubmit,
   onCancel,
@@ -55,8 +57,10 @@ export function ArtistForm({
       <fieldset>
         <legend>Photo</legend>
         <ImageUpload
-          images={form.photo ? [form.photo] : []}
-          onChange={(imgs) => onChange({ ...form, photo: imgs[0] ?? '' })}
+          groupIds={form.photoId ? [form.photoId] : []}
+          onChange={(ids) => onChange({ ...form, photoId: ids[0] ?? null })}
+          entityType="artist"
+          entityId={artistId}
           max={1}
         />
       </fieldset>
@@ -81,5 +85,5 @@ export const emptyArtistForm = (): ArtistFormData => ({
   site: '',
   instagram: '',
   email: '',
-  photo: '',
+  photoId: null,
 });

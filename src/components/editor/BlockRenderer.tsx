@@ -1,4 +1,4 @@
-import { type CSSProperties, type DragEvent, type ReactNode } from 'react';
+import { type CSSProperties, type DragEvent, type MouseEvent, type ReactNode } from 'react';
 import type { DocBlock } from '../../types/templates';
 import { fontFamilyCss } from '../../utils/fonts';
 import { flexAxis } from '../../utils/flexDirection';
@@ -15,6 +15,9 @@ import {
   resolveImageWidth,
 } from '../../utils/imageBlockLayout';
 import { useDropHover } from './DropHoverContext';
+import { BlockShell } from './BlockShell';
+import { blockSupportsBackground } from '../../utils/blockBackground';
+import { useMediaUrl } from '../../hooks/useMediaUrl';
 
 type LayoutAxis = FlexAxis;
 
@@ -336,6 +339,19 @@ function DropSlot({
   );
 }
 
+function StaticImageContent({ block, inner }: { block: DocBlock; inner: CSSProperties }) {
+  const mediaUrl = useMediaUrl(block.imageMediaGroupId, 'display');
+  const src = mediaUrl ?? block.imageSrc;
+  if (!src) {
+    return (
+      <div className="tpl-image-placeholder" style={inner}>
+        Image statique
+      </div>
+    );
+  }
+  return <img src={src} alt="" style={inner} />;
+}
+
 export function BlockRenderer({
   block,
   ctx,
@@ -358,23 +374,48 @@ export function BlockRenderer({
     dragHandlers?: ContainerDragHandlers,
   ) => {
     const merged = { ...blockBaseStyle(block), ...style };
+    const editHandlers = isEdit
+      ? {
+          onClick: (e: MouseEvent) => {
+            e.stopPropagation();
+            if (depth === 0) onPageBackgroundClick?.();
+            else onSelect?.(block.id);
+          },
+          onDragStart: (e: DragEvent) => {
+            e.stopPropagation();
+            e.dataTransfer.setData('application/atelier-block-id', block.id);
+            e.dataTransfer.effectAllowed = 'move';
+          },
+          onDragEnd: () => setDropHover(null),
+          dragHandlers,
+        }
+      : {};
+
+    if (blockSupportsBackground(block)) {
+      return (
+        <BlockShell
+          block={block}
+          className={className}
+          style={merged}
+          isEdit={isEdit}
+          isSelected={isSelected}
+          depth={depth}
+          {...editHandlers}
+        >
+          {children}
+        </BlockShell>
+      );
+    }
+
     if (!isEdit) return <div className={className} style={merged}>{children}</div>;
     return (
       <div
         className={`${className} ${isSelected ? 'block-selected' : ''} block-editable`}
         style={merged}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (depth === 0) onPageBackgroundClick?.();
-          else onSelect?.(block.id);
-        }}
+        onClick={editHandlers.onClick}
         draggable={depth > 0}
-        onDragStart={(e) => {
-          e.stopPropagation();
-          e.dataTransfer.setData('application/atelier-block-id', block.id);
-          e.dataTransfer.effectAllowed = 'move';
-        }}
-        onDragEnd={() => setDropHover(null)}
+        onDragStart={editHandlers.onDragStart}
+        onDragEnd={editHandlers.onDragEnd}
         {...dragHandlers}
       >
         {children}
@@ -474,13 +515,7 @@ export function BlockRenderer({
       block.imageShadow,
     );
     return wrap(
-      block.imageSrc ? (
-        <img src={block.imageSrc} alt="" style={inner} />
-      ) : (
-        <div className="tpl-image-placeholder" style={inner}>
-          Image statique
-        </div>
-      ),
+      <StaticImageContent block={block} inner={inner} />,
       'tpl-static-image',
       wrapper,
     );

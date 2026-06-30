@@ -70,7 +70,7 @@ export function DashboardPage() {
         <div className="btn-row">
           <label className="btn btn-secondary">
             Importer .artdb
-            <input type="file" accept=".artdb,.json" hidden onChange={handleImport} />
+            <input type="file" accept=".artdb,.json,.zip" hidden onChange={handleImport} />
           </label>
           <button type="button" className="btn btn-ghost" onClick={handleSeed}>
             Charger données démo

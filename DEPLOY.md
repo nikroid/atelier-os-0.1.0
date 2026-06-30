@@ -41,9 +41,18 @@ GITHUB_PAGES=true npm run build
 npx vite preview --base /atelier-os-v2/
 ```
 
-## Données
+## Données & images
 
-Chaque utilisateur garde sa base **locale** (IndexedDB). Export `.artdb` depuis la barre latérale.
+Chaque utilisateur garde sa base **locale** (IndexedDB). Les images sont optimisées automatiquement à l’import (thumb / display / original).
+
+| Action | Détail |
+|--------|--------|
+| Export `.artdb` | Archive ZIP (manifest + médias binaires) — barre latérale ou Paramètres |
+| Import `.artdb` | Tableau de bord — accepte `.artdb`, `.json`, `.zip` |
+| Ancien format JSON | Importable ; images migrées vers la table `media` |
+| Stockage | Indicateur dans **Paramètres** (nombre d’images, espace utilisé) |
+
+Recommandation : exporter régulièrement — les données ne sont pas sur un serveur.
 
 ## Rappels
 

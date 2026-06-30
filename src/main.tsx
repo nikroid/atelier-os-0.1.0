@@ -5,6 +5,8 @@ import { seedDemoData } from './utils/backup';
 import { cleanupBuiltinTemplatesFromDb } from './utils/defaultTemplates';
 import { db } from './db/database';
 import { ensureDefaultSettings } from './hooks/useSettings';
+import { migrateLegacyImagesToMedia } from './utils/mediaMigration';
+import { cleanupOrphanMedia } from './utils/mediaStore';
 import {
   APP_BUILD_NUMBER,
   APP_BUILD_TIME,
@@ -52,6 +54,8 @@ if ('serviceWorker' in navigator) {
 }
 
 seedDemoData()
+  .then(() => migrateLegacyImagesToMedia())
+  .then(() => cleanupOrphanMedia())
   .then(() => ensureDefaultSettings())
   .then(() =>
     cleanupBuiltinTemplatesFromDb(

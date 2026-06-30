@@ -42,6 +42,9 @@ export type SelfAlign = 'flex-start' | 'center' | 'flex-end';
 export type TextAlign = 'left' | 'center' | 'right';
 export type FontFamily = 'serif' | 'sans' | 'mono';
 
+export type BlockBackgroundType = 'none' | 'color' | 'image';
+export type BlockBackgroundImageFit = 'cover' | 'contain';
+
 export interface ImageDropShadow {
   enabled?: boolean;
   offsetX?: number;
@@ -81,6 +84,8 @@ export interface DocBlock {
   textTransform?: 'none' | 'uppercase';
   imageHeight?: string | number;
   imageWidth?: string | number;
+  imageMediaGroupId?: string;
+  /** @deprecated Utiliser imageMediaGroupId */
   imageSrc?: string;
   objectFit?: 'cover' | 'contain';
   /** Ombre portée (drop-shadow) autour de l'image */
@@ -88,6 +93,11 @@ export interface DocBlock {
   spacerHeight?: number;
   rectHeight?: number;
   backgroundColor?: string;
+  /** Arrière-plan : aucun, couleur unie ou image */
+  blockBgType?: BlockBackgroundType;
+  blockBgColor?: string;
+  blockBgImageGroupId?: string;
+  blockBgImageFit?: BlockBackgroundImageFit;
   borderColor?: string;
   borderWidth?: number;
 }
@@ -107,6 +117,9 @@ export interface DocTemplate {
   format: PageFormat;
   margin: number;
   background: string;
+  pageBgType?: BlockBackgroundType;
+  pageBgImageGroupId?: string;
+  pageBgImageFit?: BlockBackgroundImageFit;
   /** @deprecated Conservé pour compatibilité — utiliser `pages[0].root`. */
   root: DocBlock;
   /** Pages du modèle (simple = 1×, dynamique = répétée par œuvre sélectionnée). */

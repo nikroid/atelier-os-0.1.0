@@ -2209,6 +2209,29 @@ textarea {
   font-weight: 600;
 }
 
+.bg-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.block-bg-preview {
+  margin: 0.5rem 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  max-height: 120px;
+}
+
+.block-bg-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 120px;
+  object-fit: cover;
+}
+
 .block-spacing-fieldset {
   border: 1px solid var(--border);
   border-radius: 6px;

@@ -1,13 +1,20 @@
+import { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import { useGmailAuth } from '../hooks/useGmailAuth';
 import { useSettings } from '../hooks/useSettings';
 import { MODE_LABELS } from '../types/settings';
 import { downloadBackup } from '../utils/backup';
+import { formatStorageSize, getStorageStats } from '../utils/mediaStore';
 
 export function SettingsPage() {
   const { settings, setMode } = useSettings();
   const { auth, isConfigured, isConnected, isExpired, connecting, connectError, connect, disconnect } =
     useGmailAuth();
+  const [storage, setStorage] = useState<{ imageCount: number; totalBytes: number } | null>(null);
+
+  useEffect(() => {
+    void getStorageStats().then(setStorage);
+  }, []);
 
   return (
     <>
@@ -124,11 +131,26 @@ export function SettingsPage() {
       </section>
 
       <section className="card-section">
+        <h2>Stockage images</h2>
+        <p className="hint">
+          Les photos sont optimisées automatiquement à l&apos;import (miniature, affichage, original plafonné).
+        </p>
+        {storage ? (
+          <p className="storage-stats">
+            <strong>{storage.imageCount}</strong> image{storage.imageCount !== 1 ? 's' : ''} ·{' '}
+            <strong>{formatStorageSize(storage.totalBytes)}</strong>
+          </p>
+        ) : (
+          <p className="hint">Calcul du stockage…</p>
+        )}
+      </section>
+
+      <section className="card-section">
         <h2>Sauvegarde</h2>
         <p className="hint">
           Vos données sont stockées localement dans ce navigateur. Exportez régulièrement un fichier{' '}
-          <code>.artdb</code> pour les conserver ou les transférer sur un autre appareil (import depuis le
-          tableau de bord).
+          <code>.artdb</code> (archive ZIP avec images) pour les conserver ou les transférer sur un autre
+          appareil (import depuis le tableau de bord).
         </p>
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => downloadBackup()}>
           Exporter .artdb

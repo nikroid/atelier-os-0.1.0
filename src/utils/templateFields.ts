@@ -34,6 +34,8 @@ export interface TemplateContext {
   work?: Work;
   artist?: Artist;
   exhibition?: Exhibition;
+  /** URLs résolues pour les images média (groupId → object URL) */
+  mediaUrlByGroupId?: Record<string, string>;
 }
 
 export function resolveField(key: FieldKey, ctx: TemplateContext): string {
@@ -63,8 +65,16 @@ export function resolveField(key: FieldKey, ctx: TemplateContext): string {
 }
 
 export function resolveImage(key: FieldKey, ctx: TemplateContext): string | null {
-  if (key === 'work.image') return ctx.work?.images[0] ?? null;
-  if (key === 'artist.photo') return ctx.artist?.photo || null;
+  if (key === 'work.image') {
+    const gid = ctx.work?.imageIds?.[0];
+    if (gid && ctx.mediaUrlByGroupId?.[gid]) return ctx.mediaUrlByGroupId[gid];
+    return null;
+  }
+  if (key === 'artist.photo') {
+    const gid = ctx.artist?.photoId;
+    if (gid && ctx.mediaUrlByGroupId?.[gid]) return ctx.mediaUrlByGroupId[gid];
+    return null;
+  }
   return null;
 }
 

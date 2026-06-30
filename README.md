@@ -47,11 +47,34 @@ Le workflow `.github/workflows/deploy-pages.yml` build et déploie à chaque pus
 
 URL attendue : `https://nikroid.github.io/atelier-os-v2/`
 
+## Stockage images
+
+Les photos (œuvres, artistes, modèles) sont stockées en **Blobs** dans IndexedDB (table `media`), avec 3 variantes générées à l’import :
+
+| Variante | Usage |
+|----------|--------|
+| thumb (300 px) | grilles, listes |
+| display (1600 px) | fiches, éditeur, PDF |
+| original (3000 px max) | impression, pièces jointes |
+
+Mode galerie : jusqu’à **20 images par œuvre**. Les imports lourds (iPhone, DSLR) sont acceptés sans préparation.
+
+## Sauvegarde `.artdb`
+
+Le fichier `.artdb` est une **archive ZIP** (format v2.0) :
+
+```
+manifest.json    ← données texte + références imageIds
+media/           ← fichiers JPEG binaires par variante
+```
+
+Les anciens `.artdb` JSON (prototype v1.x) restent importables — les images sont migrées automatiquement.
+
 ## Prototype Netlify
 
 L’ancienne version reste dans `../atelier-os` → https://atelier-os.netlify.app
 
-Les fichiers `.artdb` sont compatibles entre les deux (export/import).
+Les sauvegardes v1 JSON sont importables dans v2 ; les exports v2 (ZIP) sont réservés à v2.
 
 ## Tests
 

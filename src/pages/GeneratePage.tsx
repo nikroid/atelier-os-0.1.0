@@ -17,6 +17,7 @@ import type { Work } from '../types';
 import { generateTemplateDocument } from '../utils/templatePdf';
 import { countExpandedPdfPages } from '../utils/templatePages';
 import type { TemplateContext } from '../utils/templateFields';
+import { enrichTemplateContexts } from '../utils/templateMediaContext';
 
 export function GeneratePage() {
   const works = useWorks();
@@ -85,11 +86,13 @@ export function GeneratePage() {
     }
 
     await run('modele', async () => {
-      const contexts: TemplateContext[] = selected.map((work) => ({
-        work,
-        artist: artistMap.get(work.artisteId),
-        exhibition: expo,
-      }));
+      const contexts = await enrichTemplateContexts(
+        selected.map((work) => ({
+          work,
+          artist: artistMap.get(work.artisteId),
+          exhibition: expo,
+        })),
+      );
 
       await generateTemplateDocument(
         tpl,
@@ -118,11 +121,13 @@ export function GeneratePage() {
     }
 
     await run('Catalogue', async () => {
-      const contexts = expoWorks.map((work) => ({
-        work,
-        artist,
-        exhibition: expo,
-      }));
+      const contexts = await enrichTemplateContexts(
+        expoWorks.map((work) => ({
+          work,
+          artist,
+          exhibition: expo,
+        })),
+      );
       await generateTemplateDocument(
         tpl,
         contexts,
@@ -146,9 +151,10 @@ export function GeneratePage() {
     const ctx: TemplateContext = { work, artist, exhibition: expo };
 
     await run('Presse', async () => {
+      const [enriched] = await enrichTemplateContexts([ctx]);
       await generateTemplateDocument(
         tpl,
-        [ctx],
+        [enriched],
         `presse-${expo.titre.replace(/\s+/g, '-').toLowerCase()}.pdf`,
         undefined,
         undefined,

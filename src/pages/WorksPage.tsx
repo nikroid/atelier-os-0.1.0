@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { EmptyState } from '../components/EmptyState';
+import { MediaThumb } from '../components/MediaThumb';
+import { detachWorkImages } from '../utils/mediaMigration';
 import { ImageUpload } from '../components/ImageUpload';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
@@ -21,7 +23,7 @@ const emptyWork = (): Omit<Work, 'id' | 'ref' | 'createdAt' | 'updatedAt'> => ({
   dimensions: '',
   prix: null,
   description: '',
-  images: [],
+  imageIds: [],
   statut: 'disponible',
   certificat: true,
 });
@@ -47,6 +49,7 @@ export function WorksPage() {
   const myArtistId = artists?.[0]?.id ?? '';
   const crud = useEntityCrud<Omit<Work, 'id' | 'ref' | 'createdAt' | 'updatedAt'>>();
   const [dims, setDims] = useState<WorkDimensionsInput>(emptyWorkDimensions());
+  const [draftWorkId, setDraftWorkId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(loadWorksViewMode);
 
   useEffect(() => {
@@ -58,11 +61,13 @@ export function WorksPage() {
   }, [viewMode]);
 
   const openCreate = () => {
+    setDraftWorkId(uid('work'));
     crud.openCreate({ ...emptyWork(), artisteId: isGallery ? artists?.[0]?.id ?? '' : myArtistId });
     setDims(emptyWorkDimensions());
   };
 
   const openEdit = (work: Work) => {
+    setDraftWorkId(work.id);
     crud.openEdit(work.id, {
       titre: work.titre,
       artisteId: work.artisteId,
@@ -71,7 +76,7 @@ export function WorksPage() {
       dimensions: work.dimensions,
       prix: work.prix,
       description: work.description,
-      images: work.images,
+      imageIds: work.imageIds ?? [],
       statut: work.statut,
       certificat: work.certificat,
     });
@@ -87,20 +92,25 @@ export function WorksPage() {
     if (crud.editingId) {
       await db.works.update(crud.editingId, { ...payload, updatedAt: ts });
     } else {
+      const workId = draftWorkId ?? uid('work');
       const ref = await generateWorkRef(payload.annee);
       await db.works.add({
-        id: uid('work'),
+        id: workId,
         ref,
         ...payload,
         createdAt: ts,
         updatedAt: ts,
       });
     }
+    setDraftWorkId(null);
     crud.closeModal();
   };
 
   const remove = async (id: string) => {
-    if (confirm('Supprimer cette œuvre ?')) await db.works.delete(id);
+    if (!confirm('Supprimer cette œuvre ?')) return;
+    const work = await db.works.get(id);
+    if (work?.imageIds?.length) await detachWorkImages(id, work.imageIds);
+    await db.works.delete(id);
   };
 
   return (
@@ -134,8 +144,8 @@ export function WorksPage() {
           {works.map((work) => (
             <article key={work.id} className="work-card">
               <div className="work-card-image">
-                {work.images[0] ? (
-                  <img src={work.images[0]} alt={work.titre} />
+                {work.imageIds?.[0] ? (
+                  <MediaThumb groupId={work.imageIds[0]} alt={work.titre} />
                 ) : (
                   <div className="placeholder-image" />
                 )}
@@ -166,8 +176,8 @@ export function WorksPage() {
           {works.map((work) => (
             <article key={work.id} className="list-row work-list-row">
               <div className="work-list-thumb">
-                {work.images[0] ? (
-                  <img src={work.images[0]} alt="" />
+                {work.imageIds?.[0] ? (
+                  <MediaThumb groupId={work.imageIds[0]} alt="" />
                 ) : (
                   <div className="placeholder-image" />
                 )}
@@ -347,7 +357,13 @@ export function WorksPage() {
           </label>
           <fieldset>
             <legend>Images</legend>
-            <ImageUpload images={crud.form.images} onChange={(images) => crud.setForm({ ...crud.form, images })} />
+            <ImageUpload
+              groupIds={crud.form.imageIds ?? []}
+              onChange={(imageIds) => crud.setForm({ ...crud.form, imageIds })}
+              entityType="work"
+              entityId={draftWorkId ?? crud.editingId ?? ''}
+              max={isGallery ? 20 : 10}
+            />
           </fieldset>
           <div className="form-actions">
             <button type="button" className="btn btn-ghost" onClick={crud.closeModal}>

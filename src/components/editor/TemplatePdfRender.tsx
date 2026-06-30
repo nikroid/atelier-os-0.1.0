@@ -4,6 +4,7 @@ import type { DocBlock, DocTemplate } from '../../types/templates';
 import type { TemplateContext } from '../../utils/templateFields';
 import { getPdfRenderPixelSize } from '../../utils/templatePdf';
 import { getTemplatePages } from '../../utils/templatePages';
+import { PageBackgroundSurface } from './PageBackgroundSurface';
 
 interface TemplatePdfRenderProps {
   template: DocTemplate;
@@ -23,7 +24,6 @@ export function TemplatePdfRender({ template, ctx, root }: TemplatePdfRenderProp
     maxWidth: pdfSize.widthPx,
     height: pdfSize.pageHeightPx,
     minHeight: pdfSize.pageHeightPx,
-    background: template.background,
     padding: pdfSize.marginPx,
     boxSizing: 'border-box',
     display: 'flex',
@@ -32,9 +32,9 @@ export function TemplatePdfRender({ template, ctx, root }: TemplatePdfRenderProp
 
   return (
     <div id="template-pdf-render" className="template-pdf-render" aria-hidden>
-      <div className="template-pdf-page" style={pageStyle}>
+      <PageBackgroundSurface template={template} className="template-pdf-page" style={pageStyle}>
         <BlockRenderer block={block} ctx={ctx} mode="preview" />
-      </div>
+      </PageBackgroundSurface>
     </div>
   );
 }
