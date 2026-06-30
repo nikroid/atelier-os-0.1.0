@@ -90,7 +90,7 @@ export function SettingsPage() {
               <ol style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
                 <li>
                   <strong>Origines JavaScript</strong> : <code>http://localhost:5191</code> et{' '}
-                  <code>https://VOTRE_USER.github.io</code> (voir DEPLOY.md)
+                  <code>https://nikroid.github.io</code> (voir DEPLOY.md)
                 </li>
                 <li>
                   <strong>Domaine autorisé</strong> sur l’écran de consentement :{' '}

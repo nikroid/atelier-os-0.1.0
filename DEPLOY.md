@@ -22,7 +22,7 @@
 **Origines JavaScript autorisées** :
 
 - `http://localhost:5191`
-- `https://VOTRE_USER.github.io`
+   - `https://nikroid.github.io`
 
 **Domaines autorisés** (écran de consentement) : `github.io`
 

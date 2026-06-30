@@ -33,7 +33,7 @@ git init
 git add .
 git commit -m "Atelier OS v2 — base GitHub Pages"
 git branch -M main
-git remote add origin git@github.com:VOTRE_USER/atelier-os-v2.git
+git remote add origin git@github.com:nikroid/atelier-os-v2.git
 git push -u origin main
 ```
 
@@ -41,11 +41,11 @@ git push -u origin main
 4. Secret repo : `VITE_GOOGLE_CLIENT_ID` (même Client ID Google ou un second client)
 5. Google Cloud → origines JS autorisées :
    - `http://localhost:5191`
-   - `https://VOTRE_USER.github.io`
+   - `https://nikroid.github.io`
 
 Le workflow `.github/workflows/deploy-pages.yml` build et déploie à chaque push sur `main`.
 
-URL attendue : `https://VOTRE_USER.github.io/atelier-os-v2/`
+URL attendue : `https://nikroid.github.io/atelier-os-v2/`
 
 ## Prototype Netlify
 
