@@ -4,6 +4,7 @@ import { ConfirmDeleteModal } from '../ConfirmDeleteModal';
 import type { DocTemplate, PageFormatRef } from '../../types/templates';
 import { PAGE_FORMATS, TEMPLATE_TYPES } from '../../types/templates';
 import { isBuiltinTemplate } from '../../utils/templateCatalog';
+import { ensureCartelLayout } from '../../utils/cartelLayout';
 import { usePageFormats } from '../../hooks/usePageFormats';
 import { IconToggleGroup } from './IconToggleGroup';
 import {
@@ -195,7 +196,11 @@ export function EditorToolbar({
             <select
               value={draft?.type ?? 'custom'}
               disabled={isReadonly}
-              onChange={(e) => onPatchDraft((t) => ({ ...t, type: e.target.value as DocTemplate['type'] }))}
+              onChange={(e) =>
+                onPatchDraft((t) =>
+                  ensureCartelLayout({ ...t, type: e.target.value as DocTemplate['type'] }),
+                )
+              }
             >
               {TEMPLATE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -259,6 +264,7 @@ export function EditorToolbar({
             label="Orientation"
             value={orientation}
             compact
+            iconOnly
             options={[
               { value: 'portrait', label: '▯', title: 'Portrait' },
               { value: 'landscape', label: '▭', title: 'Paysage' },

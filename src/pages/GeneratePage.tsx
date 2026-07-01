@@ -20,6 +20,8 @@ import { countExpandedPdfPages } from '../utils/templatePages';
 import type { TemplateContext } from '../utils/templateFields';
 import { withExhibitionArtists } from '../utils/templateFields';
 import { useFonts } from '../hooks/useFonts';
+import { generateCartelDocument, countCartelExportPages, getCartelPerPlate } from '../utils/cartelPlatePdf';
+import { getTemplatePages } from '../utils/templatePages';
 import { collectFontRefsFromRoot, collectFontRefsFromTemplate } from '../utils/fontRegistry';
 
 export function GeneratePage() {
@@ -50,6 +52,15 @@ export function GeneratePage() {
   const getSelectedWorkObjects = (): Work[] => works?.filter((w) => selectedWorks.has(w.id)) ?? [];
 
   const selectedTemplate = templates?.find((t) => t.id === selectedTemplateId);
+  const isCartelTemplate = selectedTemplate?.type === 'cartel';
+  const cartelExportPages =
+    isCartelTemplate && selectedWorks.size > 0 && selectedTemplate
+      ? countCartelExportPages(selectedTemplate, selectedWorks.size)
+      : 0;
+  const cartelPerPlate = isCartelTemplate && selectedTemplate ? getCartelPerPlate(selectedTemplate) : 0;
+  const cartelPages = isCartelTemplate && selectedTemplate ? getTemplatePages(selectedTemplate) : [];
+  const cartelHasDynamic = cartelPages.some((p) => p.kind === 'dynamic');
+  const cartelHasStatic = cartelPages.some((p) => p.kind === 'static');
   const expandedPageCount =
     selectedTemplate && selectedWorks.size > 0
       ? countExpandedPdfPages(selectedTemplate, selectedWorks.size)
@@ -91,6 +102,31 @@ export function GeneratePage() {
     }
     if (!selected.length) {
       alert('Sélectionnez au moins une œuvre.');
+      return;
+    }
+
+    if (tpl.type === 'cartel') {
+      await run('cartel', async () => {
+        const contexts: TemplateContext[] = selected.map((work) =>
+          withExhibitionArtists(
+            {
+              work,
+              artist: artistMap.get(work.artisteId),
+            },
+            artistMap,
+            works,
+          ),
+        );
+        await ensureLoaded(collectFontRefsFromTemplate(tpl));
+        await generateCartelDocument(
+          tpl,
+          contexts,
+          `${tpl.nom.replace(/\s+/g, '-').toLowerCase()}-${selected.length}oeuvres.pdf`,
+          async (page) => {
+            await renderPage(tpl, page);
+          },
+        );
+      });
       return;
     }
 
@@ -273,9 +309,15 @@ export function GeneratePage() {
               disabled={!selectedTemplateId || selectedWorks.size === 0 || !!loading}
               onClick={generateWithTemplate}
             >
-              {loading === 'modele'
+              {loading === 'modele' || loading === 'cartel'
                 ? '…'
-                : `Générer PDF (${selectedWorks.size} œuvre(s)${expandedPageCount > selectedWorks.size ? `, ${expandedPageCount} p.` : ''})`}
+                : isCartelTemplate
+                  ? cartelHasDynamic && !cartelHasStatic
+                    ? `Générer planche A4 (${selectedWorks.size} cartel(s), ${cartelExportPages} p., ${cartelPerPlate}/p.)`
+                    : cartelHasStatic && !cartelHasDynamic
+                      ? `Générer PDF (${cartelExportPages} page(s) unique(s))`
+                      : `Générer PDF (${cartelExportPages} p.)`
+                  : `Générer PDF (${selectedWorks.size} œuvre(s)${expandedPageCount > selectedWorks.size ? `, ${expandedPageCount} p.` : ''})`}
             </button>
           </div>
         </section>

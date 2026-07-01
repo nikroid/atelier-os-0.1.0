@@ -1,6 +1,7 @@
 import type { DocTemplate } from '../types/templates';
 import { createBlockId } from './blockTree';
 import { defaultPageKindForTemplate, legacyPageId } from './templatePages';
+import { DEFAULT_CARTEL_LAYOUT } from './cartelLayout';
 import { migrateTemplatePageSize } from './pageLayout';
 import catalogueJson from '../data/builtin-catalogue.json';
 
@@ -20,28 +21,74 @@ function withBuiltinPages(tpl: DocTemplate): DocTemplate {
 }
 
 function cartelTemplate(): DocTemplate {
+  const accent = DEFAULT_CARTEL_LAYOUT.accentColor;
   return {
     id: 'builtin_cartel',
-    nom: 'Cartel classique',
+    nom: 'Cartel Cilas',
     type: 'cartel',
-    format: 'a6',
-    margin: 8,
-    background: '#f5f2ed',
+    format: 'cartel_cilas',
+    formatRef: 'cartel_cilas',
+    widthMm: DEFAULT_CARTEL_LAYOUT.widthMm,
+    heightMm: DEFAULT_CARTEL_LAYOUT.heightMm,
+    margin: 0,
+    background: '#ffffff',
+    cartelLayout: { ...DEFAULT_CARTEL_LAYOUT },
     root: {
       id: createBlockId(),
       type: 'container',
+      containerRole: 'page-content',
       direction: 'column',
-      gap: 6,
-      align: 'center',
-      padding: 12,
+      gap: 2,
+      align: 'flex-start',
+      padding: 8,
+      blockPadding: 14,
       children: [
-        { id: createBlockId(), type: 'field', field: 'work.titre', fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
-        { id: createBlockId(), type: 'field', field: 'work.annee', fontSize: 11, textAlign: 'center' },
-        { id: createBlockId(), type: 'field', field: 'artist.nom', fontSize: 10, textAlign: 'center' },
-        { id: createBlockId(), type: 'field', field: 'work.technique', fontSize: 10, textAlign: 'center' },
-        { id: createBlockId(), type: 'field', field: 'work.dimensions', fontSize: 10, textAlign: 'center' },
-        { id: createBlockId(), type: 'spacer', spacerHeight: 8 },
-        { id: createBlockId(), type: 'field', field: 'work.ref', fontSize: 7, textAlign: 'center', color: '#a8a8a0' },
+        {
+          id: createBlockId(),
+          type: 'field',
+          field: 'artist.nom',
+          fontSize: 8,
+          fontWeight: 'bold',
+          fontFamily: 'google:poppins',
+          textTransform: 'uppercase',
+          color: accent,
+        },
+        {
+          id: createBlockId(),
+          type: 'field',
+          field: 'work.titre',
+          fontSize: 8,
+          fontWeight: 'bold',
+          fontFamily: 'google:poppins',
+        },
+        {
+          id: createBlockId(),
+          type: 'rectangle',
+          rectHeight: 3,
+          backgroundColor: accent,
+          width: '6mm',
+        },
+        {
+          id: createBlockId(),
+          type: 'field',
+          field: 'work.technique',
+          fontSize: 8,
+          fontFamily: 'google:poppins',
+        },
+        {
+          id: createBlockId(),
+          type: 'field',
+          field: 'work.dimensions',
+          fontSize: 8,
+          fontFamily: 'google:poppins',
+        },
+        {
+          id: createBlockId(),
+          type: 'field',
+          field: 'work.annee',
+          fontSize: 8,
+          fontFamily: 'google:poppins',
+        },
       ],
     },
     createdAt: BUILTIN_TS,

@@ -324,7 +324,7 @@ button.brand-mark:focus-visible {
   min-width: 0;
   padding: 2rem 2.5rem;
   overflow-y: auto;
-  max-width: 1200px;
+  max-width: 100%;
 }
 
 .sidebar-backdrop {
@@ -2181,6 +2181,12 @@ button.brand-mark:focus-visible {
     0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
+.editor-preview-mini-frame.cartel-plate-mini-frame.is-selected .cartel-plate-sheet {
+  box-shadow:
+    inset 0 0 0 2px #5aabf0,
+    var(--shadow);
+}
+
 .editor-preview-field {
   display: flex;
   flex-direction: column;
@@ -2243,6 +2249,18 @@ button.brand-mark:focus-visible {
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
+}
+
+.icon-toggle-group--icon-only .icon-toggle-btn {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  min-width: 2.1rem;
+  height: 1.75rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .form-row-dense {
@@ -3417,4 +3435,141 @@ button.brand-mark:focus-visible {
   .mode-compare {
     grid-template-columns: 1fr;
   }
+}
+
+/* Cartel planche — miniature dans la liste d'aperçu */
+.cartel-plate-mini-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+.cartel-plate-mini-frame .cartel-plate-preview-scaler {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.cartel-plate-preview-scaler {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.cartel-plate-sheet {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.cartel-plate-crop-marks::before,
+.cartel-plate-crop-marks::after,
+.cartel-plate-sheet::before,
+.cartel-plate-sheet::after {
+  content: '';
+  position: absolute;
+  width: 8mm;
+  height: 8mm;
+  pointer-events: none;
+  border-color: #bbb;
+  border-style: solid;
+  border-width: 0;
+}
+
+.cartel-plate-sheet::before {
+  top: 4mm;
+  left: 4mm;
+  border-top-width: 0.25mm;
+  border-left-width: 0.25mm;
+}
+
+.cartel-plate-sheet::after {
+  top: 4mm;
+  right: 4mm;
+  border-top-width: 0.25mm;
+  border-right-width: 0.25mm;
+}
+
+.cartel-plate-crop-marks::before {
+  bottom: 4mm;
+  left: 4mm;
+  border-bottom-width: 0.25mm;
+  border-left-width: 0.25mm;
+}
+
+.cartel-plate-crop-marks::after {
+  bottom: 4mm;
+  right: 4mm;
+  border-bottom-width: 0.25mm;
+  border-right-width: 0.25mm;
+}
+
+.cartel-plate-crop-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cartel-plate-cell {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.cartel-plate-cell.show-border {
+  outline: 0.25mm solid #e8e8e8;
+  outline-offset: -0.25mm;
+}
+
+.cartel-plate-cell-content {
+  position: relative;
+  pointer-events: none;
+  user-select: none;
+}
+
+.cartel-plate-cell-content .block-renderer {
+  font-size: inherit;
+}
+
+.cartel-page-settings-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cartel-plate-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.cartel-plate-margin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+}
+
+.cartel-plate-margin-field .cartel-mm-input {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.cartel-plate-margin-field .cartel-mm-input input[type='number'] {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.cartel-plate-margin-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
 }

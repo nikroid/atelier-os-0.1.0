@@ -23,7 +23,7 @@ export const GOOGLE_FONT_CATALOG: GoogleFontEntry[] = [
   { id: 'instrument-serif', label: 'Instrument Serif', cssFamily: 'Instrument Serif', category: 'serif', weights: [400, 700] },
   { id: 'fraunces', label: 'Fraunces', cssFamily: 'Fraunces', category: 'serif', weights: [400, 600, 700] },
   // Sans-serif
-  { id: 'poppins', label: 'Poppins', cssFamily: 'Poppins', category: 'sans-serif', weights: [400, 600, 700] },
+  { id: 'poppins', label: 'Poppins', cssFamily: 'Poppins', category: 'sans-serif', weights: [100, 200, 300, 400, 500, 600, 700, 800, 900] },
   { id: 'inter', label: 'Inter', cssFamily: 'Inter', category: 'sans-serif', weights: [400, 600, 700] },
   { id: 'roboto', label: 'Roboto', cssFamily: 'Roboto', category: 'sans-serif', weights: [400, 700] },
   { id: 'open-sans', label: 'Open Sans', cssFamily: 'Open Sans', category: 'sans-serif', weights: [400, 600, 700] },

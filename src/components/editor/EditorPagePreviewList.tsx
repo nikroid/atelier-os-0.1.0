@@ -1,8 +1,9 @@
 import { useRef, useState, type DragEvent } from 'react';
-import type { DocTemplatePage } from '../../types/templates';
+import type { DocTemplate, DocTemplatePage } from '../../types/templates';
 import { pageSurfaceToCss } from '../../utils/backgroundStyle';
 import type { TemplateContext } from '../../utils/templateFields';
 import { BlockRenderer } from './BlockRenderer';
+import { CartelPlateMiniPreview } from './CartelEditor';
 import { EditorMiniPreview } from './EditorMiniPreview';
 
 const PAGE_INDEX_MIME = 'application/atelier-page-index';
@@ -18,6 +19,8 @@ interface EditorPagePreviewListProps {
   templateBackground: string;
   previewCtx: TemplateContext;
   readonly?: boolean;
+  isCartel?: boolean;
+  cartelTemplate?: DocTemplate;
   onSelectPage: (index: number) => void;
   onReorderPages: (fromIndex: number, toIndex: number) => void;
 }
@@ -43,6 +46,8 @@ export function EditorPagePreviewList({
   templateBackground,
   previewCtx,
   readonly,
+  isCartel = false,
+  cartelTemplate,
   onSelectPage,
   onReorderPages,
 }: EditorPagePreviewListProps) {
@@ -85,6 +90,8 @@ export function EditorPagePreviewList({
           dropTarget?.index === index && dropTarget.position === 'after' && dragIndex !== index;
 
         const pageSurfaceCss = pageSurfaceToCss(page, { background: templateBackground }, previewCtx);
+
+        const showPlatePreview = isCartel && cartelTemplate && page.kind === 'dynamic';
 
         return (
           <div
@@ -137,16 +144,28 @@ export function EditorPagePreviewList({
             }}
             tabIndex={0}
           >
-            <EditorMiniPreview
-              pageW={pageW}
-              pageH={pageH}
-              marginPx={marginPx}
-              surfaceStyle={pageSurfaceCss}
-              dynamic={page.kind === 'dynamic'}
-              selected={isActive}
-            >
-              <BlockRenderer block={page.root} ctx={previewCtx} mode="preview" />
-            </EditorMiniPreview>
+            {showPlatePreview ? (
+              <CartelPlateMiniPreview
+                template={cartelTemplate}
+                root={page.root}
+                previewCtx={previewCtx}
+                cartelPageW={pageW}
+                cartelPageH={pageH}
+                marginPx={marginPx}
+                selected={isActive}
+              />
+            ) : (
+              <EditorMiniPreview
+                pageW={pageW}
+                pageH={pageH}
+                marginPx={marginPx}
+                surfaceStyle={pageSurfaceCss}
+                dynamic={page.kind === 'dynamic'}
+                selected={isActive}
+              >
+                <BlockRenderer block={page.root} ctx={previewCtx} mode="preview" />
+              </EditorMiniPreview>
+            )}
             {canReorder && (
               <span className="editor-page-preview-drag" aria-hidden>
                 ⠿

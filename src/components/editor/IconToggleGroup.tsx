@@ -10,6 +10,8 @@ interface IconToggleGroupProps<T extends string> {
   options: IconToggleOption<T>[];
   onChange: (value: T) => void;
   compact?: boolean;
+  /** Boutons icône à largeur fixe (orientation, alignement…). */
+  iconOnly?: boolean;
 }
 
 export function IconToggleGroup<T extends string>({
@@ -18,11 +20,16 @@ export function IconToggleGroup<T extends string>({
   options,
   onChange,
   compact,
+  iconOnly,
 }: IconToggleGroupProps<T>) {
   return (
     <div className={`icon-toggle-field${compact ? ' icon-toggle-field-compact' : ''}`}>
       {label && <span className="editor-compact-label">{label}</span>}
-      <div className="icon-toggle-group" role="group" aria-label={label}>
+      <div
+        className={`icon-toggle-group${iconOnly ? ' icon-toggle-group--icon-only' : ''}`}
+        role="group"
+        aria-label={label}
+      >
         {options.map((opt) => (
           <button
             key={opt.value}

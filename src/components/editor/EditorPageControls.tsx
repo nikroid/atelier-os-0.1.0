@@ -1,4 +1,5 @@
-import type { DocTemplatePage, PageKind } from '../../types/templates';
+import type { DocTemplate, DocTemplatePage, PageKind } from '../../types/templates';
+import { CartelPageSettingsFields, cartelPlateSummary } from './CartelEditor';
 import {
   blockBackgroundValueFromPage,
   clearPageBackgroundPatch,
@@ -22,11 +23,25 @@ interface EditorPageSettingsProps {
   templateBackground: string;
   previewCtx?: TemplateContext;
   readonly?: boolean;
+  isCartel?: boolean;
+  cartelDraft?: DocTemplate;
+  onCartelPatch?: (updater: (t: DocTemplate) => DocTemplate) => void;
   onKindChange: (kind: PageKind) => void;
   onBackgroundPatch: (patch: Partial<DocTemplatePage>) => void;
   onSaveAsPageTemplate?: () => void;
   onLoadPageTemplate?: () => void;
   onRemove?: () => void;
+}
+
+function pageKindBadge(
+  page: DocTemplatePage,
+  isCartel: boolean,
+  cartelDraft?: DocTemplate,
+): string {
+  if (isCartel && page.kind === 'dynamic' && cartelDraft) {
+    return `${pageKindLabel(page.kind)} · ${cartelPlateSummary(cartelDraft)}`;
+  }
+  return pageKindLabel(page.kind);
 }
 
 export function EditorPageSettings({
@@ -36,6 +51,9 @@ export function EditorPageSettings({
   templateBackground,
   previewCtx,
   readonly = false,
+  isCartel = false,
+  cartelDraft,
+  onCartelPatch,
   onKindChange,
   onBackgroundPatch,
   onSaveAsPageTemplate,
@@ -47,8 +65,8 @@ export function EditorPageSettings({
   return (
     <div className="editor-page-settings">
       <p className="editor-page-settings-title">
-        Page {pageIndex + 1}
-        <span className="editor-page-settings-kind">{pageKindLabel(page.kind)}</span>
+        {isCartel ? `Cartel ${pageIndex + 1}` : `Page ${pageIndex + 1}`}
+        <span className="editor-page-settings-kind">{pageKindBadge(page, isCartel, cartelDraft)}</span>
       </p>
       <BackgroundControls
         label="Arrière-plan"
@@ -65,6 +83,9 @@ export function EditorPageSettings({
             : undefined
         }
       />
+      {isCartel && cartelDraft && onCartelPatch && page.kind === 'dynamic' && (
+        <CartelPageSettingsFields draft={cartelDraft} readonly={readonly} onPatch={onCartelPatch} />
+      )}
       <IconToggleGroup
         label="Type de page"
         value={page.kind}
@@ -73,8 +94,12 @@ export function EditorPageSettings({
       />
       <p className="hint editor-page-settings-hint">
         {page.kind === 'dynamic'
-          ? 'Cette page sera dupliquée pour chaque œuvre sélectionnée à la génération PDF.'
-          : 'Cette page n\'apparaît qu\'une seule fois dans le PDF (couverture, sommaire…).'}
+          ? isCartel
+            ? 'Planche A4 prête à découper — un cartel par œuvre sélectionnée à la génération.'
+            : 'Cette page sera dupliquée pour chaque œuvre sélectionnée à la génération PDF.'
+          : isCartel
+            ? 'Export aux dimensions du cartel (une seule fois dans le PDF).'
+            : "Cette page n'apparaît qu'une seule fois dans le PDF (couverture, sommaire…)."}
       </p>
       {!readonly && (onSaveAsPageTemplate || onLoadPageTemplate) && (
         <div className="editor-page-template-actions">

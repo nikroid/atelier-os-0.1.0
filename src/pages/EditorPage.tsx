@@ -431,6 +431,7 @@ export function EditorPage() {
     draft && activePage && selectedBlockId ? findBlock(activePage.root, selectedBlockId) : null;
 
   const isReadonly = draft ? isBuiltinTemplate(draft) : false;
+  const isCartelMode = draft?.type === 'cartel';
   const customTemplates = userTemplates?.filter((t) => !isBuiltinTemplate(t)) ?? [];
 
   const commitDraft = useCallback(
@@ -994,6 +995,9 @@ export function EditorPage() {
                       pageCount={templatePages.length}
                       templateBackground={draft?.background ?? DEFAULT_PAGE_BACKGROUND}
                       previewCtx={previewCtx}
+                      isCartel={isCartelMode}
+                      cartelDraft={isCartelMode ? draft ?? undefined : undefined}
+                      onCartelPatch={isCartelMode ? patchDraft : undefined}
                       onKindChange={handlePageKindChange}
                       onBackgroundPatch={handlePageBackgroundPatch}
                       onSaveAsPageTemplate={openSavePageTemplate}
@@ -1025,6 +1029,9 @@ export function EditorPage() {
                         pageCount={templatePages.length}
                         templateBackground={draft?.background ?? DEFAULT_PAGE_BACKGROUND}
                         previewCtx={previewCtx}
+                        isCartel={isCartelMode}
+                        cartelDraft={isCartelMode ? draft ?? undefined : undefined}
+                        onCartelPatch={isCartelMode ? patchDraft : undefined}
                         onKindChange={handlePageKindChange}
                         onBackgroundPatch={handlePageBackgroundPatch}
                         onSaveAsPageTemplate={openSavePageTemplate}
@@ -1106,6 +1113,8 @@ export function EditorPage() {
                       templateBackground={draft.background}
                       previewCtx={previewCtx}
                       readonly={isReadonly}
+                      isCartel={isCartelMode}
+                      cartelTemplate={isCartelMode ? draft : undefined}
                       onSelectPage={handleSelectPageFromPreview}
                       onReorderPages={handleReorderPages}
                     />

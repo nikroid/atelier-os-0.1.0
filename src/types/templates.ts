@@ -39,7 +39,7 @@ export type DocTemplateType =
   | 'presse'
   | 'custom';
 
-export type PageFormat = 'a4' | 'a6' | 'a5';
+export type PageFormat = 'a4' | 'a6' | 'a5' | 'cartel_cilas';
 
 /** Référence du format dans le sélecteur (preset, custom enregistré, ou libre). */
 export type PageFormatRef = PageFormat | `custom:${string}` | 'free';
@@ -99,6 +99,33 @@ export interface ImageDropShadow {
 
 /** Rôle sémantique d'un conteneur (le conteneur racine de page = zone « corps » du modèle). */
 export type ContainerRole = 'page-content';
+
+export interface CartelLayoutConfig {
+  widthMm: number;
+  heightMm: number;
+  paddingTop: number;
+  paddingLeft: number;
+  paddingRight: number;
+  accentColor: string;
+  artistSize: number;
+  titleSize: number;
+  metaSize: number;
+  artistWeight: number;
+  titleWeight: number;
+  afterArtist: number;
+  titleLeading: number;
+  afterTitle: number;
+  barW: number;
+  barH: number;
+  barGap: number;
+  afterBar: number;
+  metaLeading: number;
+  metaWrapLeading: number;
+  fontFamily: FontFamily;
+  showPaddingGuides: boolean;
+  showBorders: boolean;
+  plateMarginMm: number;
+}
 
 export interface DocBlock {
   id: string;
@@ -183,6 +210,8 @@ export interface DocTemplate {
   root: DocBlock;
   /** Pages du modèle (simple = 1×, dynamique = répétée par œuvre sélectionnée). */
   pages?: DocTemplatePage[];
+  /** Réglages layout cartel Cilas (type `cartel` uniquement). */
+  cartelLayout?: CartelLayoutConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -191,6 +220,7 @@ export const PAGE_FORMATS: { value: PageFormat; label: string; w: number; h: num
   { value: 'a4', label: 'A4', w: 210, h: 297 },
   { value: 'a5', label: 'A5', w: 148, h: 210 },
   { value: 'a6', label: 'A6 (cartel)', w: 105, h: 148 },
+  { value: 'cartel_cilas', label: 'Cartel Cilas (45×50)', w: 45, h: 50 },
 ];
 
 export const TEMPLATE_TYPES: { value: DocTemplateType; label: string }[] = [

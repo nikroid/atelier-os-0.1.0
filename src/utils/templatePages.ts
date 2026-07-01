@@ -7,6 +7,7 @@ import {
   resolvePageSurfaceBackground,
   type SurfaceBackground,
 } from './backgroundStyle';
+import { ensureCartelLayout } from './cartelLayout';
 import { migrateTemplatePageSize } from './pageLayout';
 
 export function emptyPageRoot(): DocBlock {
@@ -111,14 +112,15 @@ export function getTemplatePages(template: DocTemplate): DocTemplatePage[] {
 
 export function normalizeTemplate(template: DocTemplate): DocTemplate {
   const withSize = migrateTemplatePageSize(template);
-  const pages = getTemplatePages(withSize).map((p) => ({
+  const withCartel = ensureCartelLayout(withSize);
+  const pages = getTemplatePages(withCartel).map((p) => ({
     ...p,
     root: tagPageContentRoot(p.root),
   }));
   return {
-    ...withSize,
+    ...withCartel,
     pages,
-    root: pages[0]?.root ?? withSize.root,
+    root: pages[0]?.root ?? withCartel.root,
   };
 }
 
