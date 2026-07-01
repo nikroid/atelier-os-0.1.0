@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { ContactGroupMailModal } from '../components/ContactGroupMailModal';
 import { EmptyState } from '../components/EmptyState';
 import { Modal } from '../components/Modal';
@@ -39,6 +40,7 @@ export function ContactsPage() {
   const [form, setForm] = useState(emptyContact());
   const [filter, setFilter] = useState<ContactCategory | 'all'>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
 
   const filtered =
     contacts?.filter((c) => filter === 'all' || c.categorie === filter) ?? [];
@@ -87,8 +89,11 @@ export function ContactsPage() {
     setModalOpen(false);
   };
 
-  const remove = async (id: string) => {
-    if (confirm('Supprimer ce contact ?')) await db.contacts.delete(id);
+  const confirmRemove = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    await db.contacts.delete(id);
+    setDeleteTarget(null);
     setSelected((prev) => {
       if (!prev.has(id)) return prev;
       const next = new Set(prev);
@@ -150,10 +155,12 @@ export function ContactsPage() {
         }
       />
 
-      <div className="toolbar contacts-page-tabs">
-        <div className="filter-pills">
+      <div className="contacts-page-tabs">
+        <div className="page-tabs" role="tablist" aria-label="Sections contacts">
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'contacts'}
             className={activeTab === 'contacts' ? 'active' : ''}
             onClick={() => setActiveTab('contacts')}
           >
@@ -161,6 +168,8 @@ export function ContactsPage() {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'history'}
             className={activeTab === 'history' ? 'active' : ''}
             onClick={() => {
               setActiveTab('history');
@@ -169,7 +178,7 @@ export function ContactsPage() {
           >
             Historique
             {sentMails && sentMails.length > 0 && (
-              <span className="contacts-tab-count"> ({sentMails.length})</span>
+              <span className="contacts-tab-count">{sentMails.length}</span>
             )}
           </button>
         </div>
@@ -262,7 +271,7 @@ export function ContactsPage() {
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(contact)}>
                     Modifier
                   </button>
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => remove(contact.id)}>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleteTarget(contact)}>
                     Supprimer
                   </button>
                 </div>
@@ -346,6 +355,18 @@ export function ContactsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDeleteModal
+        open={deleteTarget !== null}
+        title="Supprimer le contact"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmRemove}
+      >
+        <p>
+          Supprimer le contact <strong>{deleteTarget ? contactFullName(deleteTarget) : ''}</strong> ? Cette action
+          est irréversible.
+        </p>
+      </ConfirmDeleteModal>
     </>
   );
 }

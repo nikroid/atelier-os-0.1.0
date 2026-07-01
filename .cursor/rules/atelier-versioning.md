@@ -2,14 +2,15 @@
 
 ## Affichage
 
-Le pied de page affiche uniquement `vMAJOR.MINOR.PATCH` (ex. `v2.1.0`), lu depuis `package.json`.
+Le pied de page affiche uniquement `vMAJOR.MINOR.PATCH` (ex. `v0.1.0`), lu depuis `package.json`.
 
 ## Règles semver
 
 | Segment | Déclencheur | Mécanisme |
 |---------|-------------|-----------|
 | **PATCH** (3e chiffre) | Hot-reload dev (modification dans `src/`) | Plugin Vite [`vite.atelier-version.ts`](../vite.atelier-version.ts) → `bumpPatch` dans `package.json` |
-| **MINOR** (2e chiffre) | Déploiement Git (push vers `main` / GitHub Pages) | `npm run version:deploy` avant le commit de release (`minor++`, `patch = 0`) |
+| **PATCH** (3e chiffre) | Déploiement Git en **pré-v1** (`0.x.x`) | `npm run version:deploy` → `patch++` |
+| **MINOR** (2e chiffre) | Déploiement Git (`1.x.x` et au-delà) | `npm run version:deploy` (`minor++`, `patch = 0`) |
 | **MAJOR** (1er chiffre) | Instruction explicite de l'utilisateur uniquement | Procédure manuelle ci-dessous |
 
 ## Déploiement (mineur)

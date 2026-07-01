@@ -6,9 +6,10 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  centerTitle?: boolean;
 }
 
-export function Modal({ open, title, onClose, children, wide }: ModalProps) {
+export function Modal({ open, title, onClose, children, wide, centerTitle }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -28,7 +29,7 @@ export function Modal({ open, title, onClose, children, wide }: ModalProps) {
         role="dialog"
         aria-modal="true"
       >
-        <header className="modal-header">
+        <header className={`modal-header${centerTitle ? ' modal-header-centered' : ''}`}>
           <h2>{title}</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Fermer">
             ×

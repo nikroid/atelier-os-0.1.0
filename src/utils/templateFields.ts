@@ -18,6 +18,22 @@ export function formatArtistNames(names: string[]): string {
   return `${unique.slice(0, -1).join(', ')} et ${unique[unique.length - 1]}`;
 }
 
+export function exhibitionArtistIds(exhibition: Exhibition): string[] {
+  if (exhibition.artisteIds?.length) return [...exhibition.artisteIds];
+  return exhibition.artisteId ? [exhibition.artisteId] : [];
+}
+
+export function normalizeExhibitionArtists(
+  data: Pick<Exhibition, 'artisteId' | 'artisteIds'>,
+): { artisteIds: string[]; artisteId: string } {
+  const artisteIds = data.artisteIds?.length
+    ? [...data.artisteIds]
+    : data.artisteId
+      ? [data.artisteId]
+      : [];
+  return { artisteIds, artisteId: artisteIds[0] ?? '' };
+}
+
 export function collectExhibitionArtistIds(
   exhibition: Exhibition,
   exhibitionWorks?: Work[],
@@ -30,7 +46,9 @@ export function collectExhibitionArtistIds(
     ids.push(id);
   };
 
-  push(exhibition.artisteId);
+  for (const id of exhibitionArtistIds(exhibition)) {
+    push(id);
+  }
   for (const work of exhibitionWorks ?? []) {
     push(work.artisteId);
   }
@@ -54,8 +72,9 @@ export function resolveExhibitionPrimaryArtistName(
   exhibition: Exhibition | undefined,
   artistMap?: ReadonlyMap<string, Artist>,
 ): string {
-  if (!exhibition?.artisteId || !artistMap) return '—';
-  return artistMap.get(exhibition.artisteId)?.nom ?? '—';
+  const primaryId = exhibition ? exhibitionArtistIds(exhibition)[0] : undefined;
+  if (!primaryId || !artistMap) return '—';
+  return artistMap.get(primaryId)?.nom ?? '—';
 }
 
 export const FIELD_CATALOG: FieldDef[] = [

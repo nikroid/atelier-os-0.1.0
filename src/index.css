@@ -114,6 +114,8 @@ textarea {
   overflow: hidden;
   white-space: nowrap;
   transition: opacity 0.15s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .app.sidebar-collapsed .brand-text {
@@ -830,6 +832,59 @@ button.brand-mark:focus-visible {
   border-color: var(--ink);
 }
 
+.page-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-tabs button {
+  position: relative;
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  margin-bottom: -1px;
+}
+
+.page-tabs button:hover {
+  color: var(--ink);
+}
+
+.page-tabs button.active {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.contacts-page-tabs {
+  margin-bottom: 1rem;
+}
+
+.contacts-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-left: 0.4rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(196, 93, 58, 0.12);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.page-tabs button.active .contacts-tab-count {
+  background: rgba(196, 93, 58, 0.18);
+}
+
 .contact-mail-recipients {
   margin: 0 0 1rem;
   background: var(--bg);
@@ -846,15 +901,6 @@ button.brand-mark:focus-visible {
 
 .contact-mail-hint {
   margin-top: 0;
-}
-
-.contacts-page-tabs {
-  margin-bottom: 0.25rem;
-}
-
-.contacts-tab-count {
-  opacity: 0.75;
-  font-size: 0.85em;
 }
 
 .sent-mail-history .sent-mail-row {
@@ -1012,6 +1058,172 @@ button.brand-mark:focus-visible {
 }
 
 /* Expo */
+.expo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.expo-grid-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.expo-grid-card-poster {
+  aspect-ratio: 210 / 297;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.expo-grid-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.expo-grid-card-body {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.expo-grid-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.expo-grid-card-text > * {
+  margin: 0;
+}
+
+.expo-grid-card-text h3 {
+  font-size: 1rem;
+}
+
+.expo-grid-card-text .meta {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.expo-grid-card-text .dates {
+  font-family: var(--font);
+  font-style: italic;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.expo-grid-card-body .card-actions {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+.expo-list-row {
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.expo-list-row .list-actions {
+  align-self: center;
+}
+
+.expo-list-row .list-content .dates {
+  font-family: var(--font);
+  font-style: italic;
+  color: var(--ink-muted);
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.expo-list-row .list-content .work-count {
+  margin-top: 0.25rem;
+}
+
+.expo-list-thumb {
+  flex-shrink: 0;
+  width: 3.25rem;
+  aspect-ratio: 210 / 297;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.expo-list-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.expo-list-thumb .expo-card-poster-placeholder {
+  font-size: 0.85rem;
+}
+
+/* Artist grid (mode galerie) */
+.artist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.artist-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.artist-card-photo {
+  aspect-ratio: 1;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 2rem;
+  color: var(--accent);
+}
+
+.artist-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artist-card-body {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.artist-card-body h3 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.artist-card-body .card-actions {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
 .expo-list {
   display: flex;
   flex-direction: column;
@@ -1026,7 +1238,8 @@ button.brand-mark:focus-visible {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  padding: 0 1rem 0 0;
+  height: 12rem;
 }
 
 .expo-card-poster {
@@ -1066,9 +1279,11 @@ button.brand-mark:focus-visible {
   flex: 1;
   min-width: 0;
   align-self: center;
+  padding: 1rem 0;
 }
 
 .expo-card .card-actions {
+  flex-direction: column;
   align-self: center;
   margin-top: 0;
 }
@@ -1085,6 +1300,10 @@ button.brand-mark:focus-visible {
 
 .expo-card h3 {
   font-size: 1.1rem;
+}
+
+.expo-card p {
+  margin: .25rem;
 }
 
 .expo-card .dates {
@@ -1340,8 +1559,39 @@ button.brand-mark:focus-visible {
   font-size: 1.15rem;
 }
 
+.modal-header-centered {
+  position: relative;
+  justify-content: center;
+}
+
+.modal-header-centered h2 {
+  flex: 1;
+  text-align: center;
+  padding: 0 2rem;
+}
+
+.modal-header-centered .btn-icon {
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .modal-body {
   padding: 1.5rem;
+}
+
+.confirm-delete-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.confirm-delete-modal-actions {
+  justify-content: center;
+  width: 100%;
 }
 
 /* Empty state */

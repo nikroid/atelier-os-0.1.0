@@ -1,6 +1,6 @@
-# Atelier OS v2
+# Atelier OS
 
-**Compilateur documentaire artistique** — suite du prototype Netlify (`../atelier-os`).
+**Compilateur documentaire artistique** — version actuelle **0.1.x** (pré-v1, repo `atelier-os-v2`).
 
 Cette version est hébergée via **GitHub Pages** (pas Netlify).
 

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { useFonts } from '../hooks/useFonts';
 
 export function FontManagerSection() {
@@ -6,6 +7,7 @@ export function FontManagerSection() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -22,11 +24,10 @@ export function FontManagerSection() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Supprimer la police « ${name} » ? Les blocs qui l'utilisent reviendront à la police par défaut.`)) {
-      return;
-    }
-    await deleteFont(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await deleteFont(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   return (
@@ -71,7 +72,7 @@ export function FontManagerSection() {
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
                 title="Supprimer"
-                onClick={() => void handleDelete(font.id, font.name)}
+                onClick={() => setDeleteTarget({ id: font.id, name: font.name })}
               >
                 🗑
               </button>
@@ -79,6 +80,18 @@ export function FontManagerSection() {
           ))}
         </ul>
       )}
+
+      <ConfirmDeleteModal
+        open={deleteTarget !== null}
+        title="Supprimer la police"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      >
+        <p>
+          Supprimer la police <strong>{deleteTarget?.name}</strong> ? Les blocs qui l'utilisent reviendront à la
+          police par défaut.
+        </p>
+      </ConfirmDeleteModal>
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { ContactMailAttachments } from './ContactMailAttachments';
 import { Modal } from '../components/Modal';
 import { db, now, uid } from '../db/database';
@@ -37,6 +38,7 @@ export function ContactGroupMailModal({
   const [attachments, setAttachments] = useState<MailAttachmentDraft[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
   const isGroup = recipients.length > 1;
 
@@ -83,10 +85,11 @@ export function ContactGroupMailModal({
     setSaveTemplateName('');
   };
 
-  const deleteMailTemplate = async (id: string) => {
-    if (!confirm('Supprimer ce modèle de mail ?')) return;
-    await db.mailTemplates.delete(id);
-    if (selectedTemplateId === id) setSelectedTemplateId('');
+  const confirmDeleteMailTemplate = async () => {
+    if (!deleteTemplateId) return;
+    await db.mailTemplates.delete(deleteTemplateId);
+    if (selectedTemplateId === deleteTemplateId) setSelectedTemplateId('');
+    setDeleteTemplateId(null);
   };
 
   const send = async () => {
@@ -127,6 +130,7 @@ export function ContactGroupMailModal({
   const gmailReady = isConfigured && isConnected && !isExpired;
 
   return (
+    <>
     <Modal open={open} title={title} onClose={onClose} wide>
       {!isConfigured && (
         <p className="hint contact-mail-hint">
@@ -207,7 +211,7 @@ export function ContactGroupMailModal({
               type="button"
               className="btn btn-ghost btn-sm"
               style={{ alignSelf: 'flex-end' }}
-              onClick={() => deleteMailTemplate(selectedMailTemplate.id)}
+              onClick={() => setDeleteTemplateId(selectedMailTemplate.id)}
             >
               Supprimer modèle
             </button>
@@ -290,5 +294,18 @@ export function ContactGroupMailModal({
         </div>
       </form>
     </Modal>
+
+    <ConfirmDeleteModal
+      open={deleteTemplateId !== null}
+      title="Supprimer le modèle de mail"
+      onClose={() => setDeleteTemplateId(null)}
+      onConfirm={confirmDeleteMailTemplate}
+    >
+      <p>
+        Supprimer le modèle <strong>{mailTemplates?.find((t) => t.id === deleteTemplateId)?.nom}</strong> ? Cette
+        action est irréversible.
+      </p>
+    </ConfirmDeleteModal>
+    </>
   );
 }

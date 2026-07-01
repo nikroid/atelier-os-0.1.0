@@ -1,23 +1,52 @@
 import { useState } from 'react';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { EmptyState } from '../components/EmptyState';
 import { ImageUpload } from '../components/ImageUpload';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
+import { ViewModeToggle } from '../components/ViewModeToggle';
 import { db, now, uid } from '../db/database';
 import { useArtistMap, useArtists, useExhibitions, useWorks } from '../hooks/useDatabase';
+import { usePersistedViewMode } from '../hooks/useViewMode';
 import type { Exhibition } from '../types';
 import { formatDate } from '../utils/helpers';
+import {
+  normalizeExhibitionArtists,
+  resolveExhibitionArtistNames,
+} from '../utils/templateFields';
 
-const emptyExpo = (): Omit<Exhibition, 'id' | 'createdAt' | 'updatedAt'> => ({
+const EXPO_VIEW_KEY = 'atelier-expo-view';
+
+type ExpoForm = Omit<Exhibition, 'id' | 'createdAt' | 'updatedAt' | 'artisteIds'> & {
+  artisteIds: string[];
+};
+
+const emptyExpo = (): ExpoForm => ({
   titre: '',
   lieu: '',
   date_debut: '',
   date_fin: '',
   texte_curatorial: '',
   artisteId: '',
+  artisteIds: [],
   oeuvreIds: [],
   affiche: '',
 });
+
+function expoToForm(expo: Exhibition): ExpoForm {
+  const { artisteIds, artisteId } = normalizeExhibitionArtists(expo);
+  return {
+    titre: expo.titre,
+    lieu: expo.lieu,
+    date_debut: expo.date_debut,
+    date_fin: expo.date_fin,
+    texte_curatorial: expo.texte_curatorial,
+    artisteId,
+    artisteIds,
+    oeuvreIds: [...expo.oeuvreIds],
+    affiche: expo.affiche ?? '',
+  };
+}
 
 export function ExhibitionsPage() {
   const exhibitions = useExhibitions();
@@ -26,41 +55,71 @@ export function ExhibitionsPage() {
   const artistMap = useArtistMap(artists);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Exhibition | null>(null);
-  const [form, setForm] = useState(emptyExpo());
+  const [form, setForm] = useState<ExpoForm>(emptyExpo());
+  const [deleteTarget, setDeleteTarget] = useState<Exhibition | null>(null);
+  const [viewMode, setViewMode] = usePersistedViewMode(EXPO_VIEW_KEY);
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...emptyExpo(), artisteId: artists?.[0]?.id ?? '' });
+    const firstArtistId = artists?.[0]?.id ?? '';
+    setForm({
+      ...emptyExpo(),
+      artisteId: firstArtistId,
+      artisteIds: firstArtistId ? [firstArtistId] : [],
+    });
     setModalOpen(true);
   };
 
   const openEdit = (expo: Exhibition) => {
     setEditing(expo);
-    setForm({
-      titre: expo.titre,
-      lieu: expo.lieu,
-      date_debut: expo.date_debut,
-      date_fin: expo.date_fin,
-      texte_curatorial: expo.texte_curatorial,
-      artisteId: expo.artisteId,
-      oeuvreIds: [...expo.oeuvreIds],
-      affiche: expo.affiche ?? '',
-    });
+    setForm(expoToForm(expo));
     setModalOpen(true);
   };
 
   const save = async () => {
     const ts = now();
+    const artistsNorm = normalizeExhibitionArtists(form);
+    const payload = { ...form, ...artistsNorm };
     if (editing) {
-      await db.exhibitions.update(editing.id, { ...form, updatedAt: ts });
+      await db.exhibitions.update(editing.id, { ...payload, updatedAt: ts });
     } else {
-      await db.exhibitions.add({ id: uid('expo'), ...form, createdAt: ts, updatedAt: ts });
+      await db.exhibitions.add({ id: uid('expo'), ...payload, createdAt: ts, updatedAt: ts });
     }
     setModalOpen(false);
   };
 
-  const remove = async (id: string) => {
-    if (confirm('Supprimer cette exposition ?')) await db.exhibitions.delete(id);
+  const requestRemove = (expo: Exhibition) => {
+    setDeleteTarget(expo);
+  };
+
+  const confirmRemove = async () => {
+    if (!deleteTarget) return;
+    await db.exhibitions.delete(deleteTarget.id);
+    setDeleteTarget(null);
+  };
+
+  const toggleArtist = (artistId: string) => {
+    const selected = form.artisteIds.includes(artistId);
+    if (selected) {
+      const artisteIds = form.artisteIds.filter((id) => id !== artistId);
+      const oeuvreIds = form.oeuvreIds.filter((workId) => {
+        const work = works?.find((w) => w.id === workId);
+        return work?.artisteId !== artistId;
+      });
+      setForm({
+        ...form,
+        artisteIds,
+        artisteId: artisteIds[0] ?? '',
+        oeuvreIds,
+      });
+      return;
+    }
+    const artisteIds = [...form.artisteIds, artistId];
+    setForm({
+      ...form,
+      artisteIds,
+      artisteId: artisteIds[0] ?? '',
+    });
   };
 
   const toggleWork = (workId: string) => {
@@ -70,7 +129,30 @@ export function ExhibitionsPage() {
     setForm({ ...form, oeuvreIds: ids });
   };
 
-  const artistWorks = works?.filter((w) => w.artisteId === form.artisteId) ?? [];
+  const selectedArtistSet = new Set(form.artisteIds);
+  const artistWorks =
+    works?.filter((w) => selectedArtistSet.has(w.artisteId)).sort((a, b) => a.titre.localeCompare(b.titre)) ?? [];
+
+  const renderExpoPoster = (expo: Exhibition, className: string) => (
+    <div className={className} aria-hidden={!expo.affiche}>
+      {expo.affiche ? (
+        <img src={expo.affiche} alt="" />
+      ) : (
+        <span className="expo-card-poster-placeholder">A</span>
+      )}
+    </div>
+  );
+
+  const renderExpoActions = (expo: Exhibition) => (
+    <>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(expo)}>
+        Modifier
+      </button>
+      <button type="button" className="btn btn-danger btn-sm" onClick={() => requestRemove(expo)}>
+        Supprimer
+      </button>
+    </>
+  );
 
   return (
     <>
@@ -78,9 +160,14 @@ export function ExhibitionsPage() {
         title="Expositions"
         subtitle="Regrouper des œuvres pour générer catalogues et dossiers presse"
         action={
-          <button type="button" className="btn btn-primary" onClick={openCreate}>
-            + Nouvelle exposition
-          </button>
+          <div className="page-header-actions">
+            {exhibitions?.length ? (
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            ) : null}
+            <button type="button" className="btn btn-primary" onClick={openCreate}>
+              + Nouvelle exposition
+            </button>
+          </div>
         }
       />
 
@@ -93,34 +180,41 @@ export function ExhibitionsPage() {
             </button>
           }
         />
-      ) : (
-        <div className="expo-list">
+      ) : viewMode === 'grid' ? (
+        <div className="expo-grid">
           {exhibitions.map((expo) => (
-            <article key={expo.id} className="expo-card">
-              <div className="expo-card-poster" aria-hidden={!expo.affiche}>
-                {expo.affiche ? (
-                  <img src={expo.affiche} alt="" />
-                ) : (
-                  <span className="expo-card-poster-placeholder">A</span>
-                )}
+            <article key={expo.id} className="expo-grid-card">
+              {renderExpoPoster(expo, 'expo-grid-card-poster')}
+              <div className="expo-grid-card-body">
+                <div className="expo-grid-card-text">
+                  <h3>{expo.titre}</h3>
+                  <p className="meta">{resolveExhibitionArtistNames(expo, artistMap)}</p>
+                  <p className="meta">{expo.lieu}</p>
+                  <p className="dates">
+                    {formatDate(expo.date_debut)} — {formatDate(expo.date_fin)}
+                  </p>
+                  <p className="work-count">{expo.oeuvreIds.length} œuvre(s)</p>
+                </div>
+                <div className="card-actions">{renderExpoActions(expo)}</div>
               </div>
-              <div className="expo-card-body">
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="list-table">
+          {exhibitions.map((expo) => (
+            <article key={expo.id} className="list-row expo-list-row">
+              {renderExpoPoster(expo, 'expo-list-thumb')}
+              <div className="list-content">
                 <h3>{expo.titre}</h3>
-                <p className="meta">{artistMap.get(expo.artisteId)?.nom ?? '—'}</p>
+                <p className="meta">{resolveExhibitionArtistNames(expo, artistMap)}</p>
                 <p className="meta">{expo.lieu}</p>
                 <p className="dates">
                   {formatDate(expo.date_debut)} — {formatDate(expo.date_fin)}
                 </p>
                 <p className="work-count">{expo.oeuvreIds.length} œuvre(s)</p>
               </div>
-              <div className="card-actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(expo)}>
-                  Modifier
-                </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => remove(expo.id)}>
-                  Supprimer
-                </button>
-              </div>
+              <div className="list-actions">{renderExpoActions(expo)}</div>
             </article>
           ))}
         </div>
@@ -163,20 +257,25 @@ export function ExhibitionsPage() {
               <input type="date" value={form.date_fin} onChange={(e) => setForm({ ...form, date_fin: e.target.value })} />
             </label>
           </div>
-          <label>
-            Artiste
-            <select
-              value={form.artisteId}
-              onChange={(e) => setForm({ ...form, artisteId: e.target.value, oeuvreIds: [] })}
-            >
-              <option value="">— Choisir —</option>
-              {artists?.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nom}
-                </option>
-              ))}
-            </select>
-          </label>
+          <fieldset>
+            <legend>Artiste(s)</legend>
+            <div className="checkbox-list">
+              {!artists?.length ? (
+                <p className="hint">Aucun artiste enregistré.</p>
+              ) : (
+                artists.map((artist) => (
+                  <label key={artist.id} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={form.artisteIds.includes(artist.id)}
+                      onChange={() => toggleArtist(artist.id)}
+                    />
+                    {artist.nom}
+                  </label>
+                ))
+              )}
+            </div>
+          </fieldset>
           <label>
             Texte curatorial / communiqué
             <textarea
@@ -185,12 +284,12 @@ export function ExhibitionsPage() {
               onChange={(e) => setForm({ ...form, texte_curatorial: e.target.value })}
             />
           </label>
-          {form.artisteId && (
+          {form.artisteIds.length > 0 && (
             <fieldset>
               <legend>Œuvres de l'exposition</legend>
               <div className="checkbox-list">
                 {artistWorks.length === 0 ? (
-                  <p className="hint">Aucune œuvre pour cet artiste.</p>
+                  <p className="hint">Aucune œuvre pour les artistes sélectionnés.</p>
                 ) : (
                   artistWorks.map((work) => (
                     <label key={work.id} className="checkbox-label">
@@ -200,6 +299,7 @@ export function ExhibitionsPage() {
                         onChange={() => toggleWork(work.id)}
                       />
                       {work.titre} ({work.annee})
+                      <span className="meta"> — {artistMap.get(work.artisteId)?.nom ?? '—'}</span>
                     </label>
                   ))
                 )}
@@ -216,6 +316,18 @@ export function ExhibitionsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDeleteModal
+        open={deleteTarget !== null}
+        title="Supprimer l'exposition"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmRemove}
+      >
+        <p>
+          Supprimer l'exposition <strong>{deleteTarget?.titre || 'sans titre'}</strong> ? Cette action est
+          irréversible.
+        </p>
+      </ConfirmDeleteModal>
     </>
   );
 }

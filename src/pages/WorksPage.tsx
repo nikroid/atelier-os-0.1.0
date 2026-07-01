@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { EmptyState } from '../components/EmptyState';
 import { ImageUpload } from '../components/ImageUpload';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
-import { ViewModeToggle, type ViewMode } from '../components/ViewModeToggle';
+import { ViewModeToggle } from '../components/ViewModeToggle';
 import { db, generateWorkRef, now, uid } from '../db/database';
 import { useArtistMap, useArtists, useWorks } from '../hooks/useDatabase';
 import { useEntityCrud } from '../hooks/useEntityCrud';
 import { useSettings } from '../hooks/useSettings';
+import { usePersistedViewMode } from '../hooks/useViewMode';
 import { MODE_LABELS } from '../types/settings';
 import type { Work, WorkStatus } from '../types';
 import { WORK_STATUSES } from '../types';
@@ -28,16 +30,6 @@ const emptyWork = (): Omit<Work, 'id' | 'ref' | 'createdAt' | 'updatedAt'> => ({
 
 const WORKS_VIEW_KEY = 'atelier-works-view';
 
-function loadWorksViewMode(): ViewMode {
-  try {
-    const stored = localStorage.getItem(WORKS_VIEW_KEY);
-    if (stored === 'grid' || stored === 'list') return stored;
-  } catch {
-    /* ignore */
-  }
-  return 'grid';
-}
-
 export function WorksPage() {
   const works = useWorks();
   const artists = useArtists();
@@ -47,15 +39,8 @@ export function WorksPage() {
   const myArtistId = artists?.[0]?.id ?? '';
   const crud = useEntityCrud<Omit<Work, 'id' | 'ref' | 'createdAt' | 'updatedAt'>>();
   const [dims, setDims] = useState<WorkDimensionsInput>(emptyWorkDimensions());
-  const [viewMode, setViewMode] = useState<ViewMode>(loadWorksViewMode);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(WORKS_VIEW_KEY, viewMode);
-    } catch {
-      /* ignore */
-    }
-  }, [viewMode]);
+  const [viewMode, setViewMode] = usePersistedViewMode(WORKS_VIEW_KEY);
+  const [deleteTarget, setDeleteTarget] = useState<Work | null>(null);
 
   const openCreate = () => {
     crud.openCreate({ ...emptyWork(), artisteId: isGallery ? artists?.[0]?.id ?? '' : myArtistId });
@@ -99,8 +84,10 @@ export function WorksPage() {
     crud.closeModal();
   };
 
-  const remove = async (id: string) => {
-    if (confirm('Supprimer cette œuvre ?')) await db.works.delete(id);
+  const confirmRemove = async () => {
+    if (!deleteTarget) return;
+    await db.works.delete(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   return (
@@ -153,7 +140,7 @@ export function WorksPage() {
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(work)}>
                     Modifier
                   </button>
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => remove(work.id)}>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleteTarget(work)}>
                     Supprimer
                   </button>
                 </div>
@@ -187,7 +174,7 @@ export function WorksPage() {
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(work)}>
                   Modifier
                 </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => remove(work.id)}>
+                <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleteTarget(work)}>
                   Supprimer
                 </button>
               </div>
@@ -359,6 +346,17 @@ export function WorksPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDeleteModal
+        open={deleteTarget !== null}
+        title="Supprimer l'œuvre"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmRemove}
+      >
+        <p>
+          Supprimer l'œuvre <strong>{deleteTarget?.titre || 'sans titre'}</strong> ? Cette action est irréversible.
+        </p>
+      </ConfirmDeleteModal>
     </>
   );
 }

@@ -19,6 +19,7 @@ import {
   EditorPagedCanvas,
 } from '../components/editor/EditorPagedCanvas';
 import { TemplatePdfRender } from '../components/editor/TemplatePdfRender';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { Modal } from '../components/Modal';
 import { db, now, uid } from '../db/database';
 import {
@@ -772,23 +773,16 @@ export function EditorPage() {
           onRemove={requestRemove}
         />
 
-        <Modal
+        <ConfirmDeleteModal
           open={deleteModalOpen}
           title="Supprimer le modèle"
           onClose={() => setDeleteModalOpen(false)}
+          onConfirm={confirmRemove}
         >
           <p>
             Supprimer le modèle <strong>{draft?.nom}</strong> ? Cette action est irréversible.
           </p>
-          <div className="btn-row" style={{ marginTop: '1rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setDeleteModalOpen(false)}>
-              Annuler
-            </button>
-            <button type="button" className="btn btn-danger" onClick={confirmRemove}>
-              Supprimer définitivement
-            </button>
-          </div>
-        </Modal>
+        </ConfirmDeleteModal>
 
         <Modal
           open={savePageTemplateOpen}

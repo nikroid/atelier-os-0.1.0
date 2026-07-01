@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ConfirmDeleteModal } from '../ConfirmDeleteModal';
 import type { DocTemplate, PageFormatRef } from '../../types/templates';
 import { PAGE_FORMATS, TEMPLATE_TYPES } from '../../types/templates';
 import { isBuiltinTemplate } from '../../utils/templateCatalog';
@@ -51,6 +52,7 @@ export function EditorToolbar({
   const { customPageFormats, customPageFormatMap, saveFormat, deleteFormat } = usePageFormats();
   const [saveFormatOpen, setSaveFormatOpen] = useState(false);
   const [saveFormatName, setSaveFormatName] = useState('');
+  const [deleteFormatOpen, setDeleteFormatOpen] = useState(false);
 
   const widthMm = draft?.widthMm ?? 210;
   const heightMm = draft?.heightMm ?? 297;
@@ -108,9 +110,9 @@ export function EditorToolbar({
   const handleDeleteCustomFormat = async () => {
     if (!formatRef.startsWith('custom:')) return;
     const id = formatRef.slice('custom:'.length);
-    if (!window.confirm('Supprimer ce format enregistré ?')) return;
     await deleteFormat(id);
     onPatchDraft((t) => ({ ...t, formatRef: 'free' }));
+    setDeleteFormatOpen(false);
   };
 
   const selectValue =
@@ -119,6 +121,7 @@ export function EditorToolbar({
       : formatRef;
 
   return (
+    <>
     <div className="editor-toolbar-compact">
       <div className="editor-toolbar-primary">
         <label className="editor-toolbar-field editor-toolbar-field-grow">
@@ -311,7 +314,7 @@ export function EditorToolbar({
                 </div>
               )}
               {formatRef.startsWith('custom:') && (
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => void handleDeleteCustomFormat()}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDeleteFormatOpen(true)}>
                   Supprimer le format
                 </button>
               )}
@@ -328,5 +331,15 @@ export function EditorToolbar({
         </div>
       </details>
     </div>
+
+    <ConfirmDeleteModal
+      open={deleteFormatOpen}
+      title="Supprimer le format"
+      onClose={() => setDeleteFormatOpen(false)}
+      onConfirm={handleDeleteCustomFormat}
+    >
+      <p>Supprimer ce format enregistré ? Cette action est irréversible.</p>
+    </ConfirmDeleteModal>
+    </>
   );
 }

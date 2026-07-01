@@ -3,6 +3,7 @@ import type { Artist, Exhibition, Work } from '../types';
 import {
   collectExhibitionArtistIds,
   formatArtistNames,
+  normalizeExhibitionArtists,
   resolveExhibitionArtistNames,
   resolveExhibitionPrimaryArtistName,
   resolveField,
@@ -102,5 +103,22 @@ describe('expo artist fields', () => {
 
   it('expo.artistes sans œuvres retombe sur l’artiste principal', () => {
     expect(resolveExhibitionArtistNames(exhibition(), artistMap)).toBe('Nicolas Labrunye');
+  });
+
+  it('expo.artistes utilise artisteIds explicites', () => {
+    const expo = exhibition({ artisteIds: ['a1', 'a2'], artisteId: 'a1' });
+    expect(collectExhibitionArtistIds(expo)).toEqual(['a1', 'a2']);
+    expect(resolveExhibitionArtistNames(expo, artistMap)).toBe('Nicolas Labrunye et Jane Doe');
+  });
+
+  it('normalizeExhibitionArtists synchronise artisteId', () => {
+    expect(normalizeExhibitionArtists({ artisteIds: ['a2', 'a1'], artisteId: 'a2' })).toEqual({
+      artisteIds: ['a2', 'a1'],
+      artisteId: 'a2',
+    });
+    expect(normalizeExhibitionArtists({ artisteId: 'a1' })).toEqual({
+      artisteIds: ['a1'],
+      artisteId: 'a1',
+    });
   });
 });

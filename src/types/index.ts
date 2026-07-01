@@ -62,7 +62,10 @@ export interface Exhibition {
   date_debut: string;
   date_fin: string;
   texte_curatorial: string;
+  /** Artiste principal (1er de `artisteIds`, rétrocompatibilité). */
   artisteId: string;
+  /** Tous les artistes de l'exposition. */
+  artisteIds?: string[];
   oeuvreIds: string[];
   /** Visuel affiche (data URL), format A portrait. */
   affiche: string;
