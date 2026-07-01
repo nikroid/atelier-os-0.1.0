@@ -59,6 +59,15 @@ export function Layout() {
 
   const isExpanded = isMobile ? mobileOpen : !collapsed;
 
+  const expandSidebar = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen(true);
+      return;
+    }
+    setCollapsed(false);
+    localStorage.setItem(STORAGE_KEY, '0');
+  }, [isMobile]);
+
   const toggleSidebar = useCallback(() => {
     if (isMobile) {
       setMobileOpen((open) => !open);
@@ -103,21 +112,37 @@ export function Layout() {
       <aside className="sidebar" aria-label="Navigation principale">
         <div className="sidebar-top">
           <div className="brand">
-            <span className="brand-mark">AO</span>
+            {!isExpanded ? (
+              <button
+                type="button"
+                className="brand-mark"
+                onClick={expandSidebar}
+                aria-label="Ouvrir le menu"
+                title="Ouvrir le menu"
+              >
+                AO
+              </button>
+            ) : (
+              <span className="brand-mark" aria-hidden>
+                AO
+              </span>
+            )}
             <div className="brand-text">
               <strong>Atelier OS</strong>
               <small>{labels.title}</small>
             </div>
           </div>
-          <button
-            type="button"
-            className="sidebar-toggle"
-            onClick={toggleSidebar}
-            aria-label={isExpanded ? 'Réduire le menu' : 'Ouvrir le menu'}
-            aria-expanded={isExpanded}
-          >
-            {NavIcons.menu}
-          </button>
+          {isExpanded && (
+            <button
+              type="button"
+              className="sidebar-toggle"
+              onClick={toggleSidebar}
+              aria-label="Réduire le menu"
+              aria-expanded
+            >
+              {NavIcons.menu}
+            </button>
+          )}
         </div>
 
         <nav>

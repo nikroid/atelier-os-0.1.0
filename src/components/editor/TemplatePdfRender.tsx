@@ -27,7 +27,7 @@ export function TemplatePdfRender({ template, ctx, root, pageSurface }: Template
   const block = root ?? pages[0]?.root ?? template.root;
   const surface =
     pageSurface ??
-    (pages[0] ? resolvePageSurfaceBackground(pages[0], template) : null);
+    (pages[0] ? resolvePageSurfaceBackground(pages[0], template, ctx) : null);
 
   const contentW = pdfSize.widthPx - pdfSize.marginPx * 2;
   const contentH = pdfSize.pageHeightPx - pdfSize.marginPx * 2;

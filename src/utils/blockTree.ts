@@ -120,3 +120,53 @@ export function duplicateBlockAfter(root: DocBlock, blockId: string): DocBlock {
   if (idx < 0) return root;
   return addChild(root, parent.id, duplicateBlock(block), idx + 1);
 }
+
+/** Ids des descendants en ordre document (hors racine de page). */
+export function collectBlockIdsPreorder(root: DocBlock): string[] {
+  const ids: string[] = [];
+  const walk = (node: DocBlock) => {
+    if (!node.children) return;
+    for (const child of node.children) {
+      ids.push(child.id);
+      walk(child);
+    }
+  };
+  walk(root);
+  return ids;
+}
+
+export function sortBlockIdsByDocumentOrder(root: DocBlock, blockIds: string[]): string[] {
+  const wanted = new Set(blockIds);
+  return collectBlockIdsPreorder(root).filter((id) => wanted.has(id));
+}
+
+export function duplicateBlocksAt(
+  root: DocBlock,
+  blockIds: string[],
+  newParentId: string,
+  index?: number,
+): { root: DocBlock; newIds: string[] } {
+  const ordered = sortBlockIdsByDocumentOrder(
+    root,
+    blockIds.filter((id) => id !== root.id),
+  );
+  if (!ordered.length) return { root, newIds: [] };
+
+  const parent = findBlock(root, newParentId);
+  if (!parent || parent.type !== 'container') return { root, newIds: [] };
+
+  let updated = root;
+  const newIds: string[] = [];
+  let insertIndex = index ?? parent.children?.length ?? 0;
+
+  for (const blockId of ordered) {
+    const block = findBlock(updated, blockId);
+    if (!block) continue;
+    const clone = duplicateBlock(block);
+    updated = addChild(updated, newParentId, clone, insertIndex);
+    newIds.push(clone.id);
+    insertIndex += 1;
+  }
+
+  return { root: updated, newIds };
+}

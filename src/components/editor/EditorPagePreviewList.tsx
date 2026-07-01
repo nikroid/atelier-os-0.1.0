@@ -84,7 +84,7 @@ export function EditorPagePreviewList({
         const isDropAfter =
           dropTarget?.index === index && dropTarget.position === 'after' && dragIndex !== index;
 
-        const pageSurfaceCss = pageSurfaceToCss(page, { background: templateBackground });
+        const pageSurfaceCss = pageSurfaceToCss(page, { background: templateBackground }, previewCtx);
 
         return (
           <div

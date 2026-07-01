@@ -64,7 +64,13 @@ export type FieldKey =
   | 'expo.titre'
   | 'expo.lieu'
   | 'expo.dates'
-  | 'expo.texte_curatorial';
+  | 'expo.texte_curatorial'
+  | 'expo.affiche'
+  | 'expo.artiste'
+  | 'expo.artistes';
+
+/** Source d'image dynamique pour l'arrière-plan (couleur/image). */
+export type BackgroundImageFieldKey = 'work.image' | 'artist.photo' | 'expo.affiche';
 
 export type FlexDirection = 'row' | 'column' | 'row-reverse' | 'column-reverse';
 export type AlignItems = 'flex-start' | 'center' | 'flex-end' | 'stretch';
@@ -135,6 +141,7 @@ export interface DocBlock {
   backgroundColor?: string;
   backgroundType?: BackgroundFillType;
   backgroundImage?: string;
+  backgroundImageField?: BackgroundImageFieldKey;
   backgroundImageFit?: BackgroundImageFit;
   backgroundImageSize?: BackgroundImageSize;
   backgroundImagePosition?: BackgroundImagePosition;
@@ -152,6 +159,7 @@ export interface DocTemplatePage {
   background?: string;
   backgroundType?: BackgroundFillType;
   backgroundImage?: string;
+  backgroundImageField?: BackgroundImageFieldKey;
   backgroundImageFit?: BackgroundImageFit;
   backgroundImageSize?: BackgroundImageSize;
   backgroundImagePosition?: BackgroundImagePosition;

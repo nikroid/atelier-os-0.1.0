@@ -64,6 +64,8 @@ export interface Exhibition {
   texte_curatorial: string;
   artisteId: string;
   oeuvreIds: string[];
+  /** Visuel affiche (data URL), format A portrait. */
+  affiche: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type {
   BackgroundFillType,
+  BackgroundImageFieldKey,
   BackgroundImageFit,
   BackgroundImagePosition,
   BackgroundImageSize,
@@ -9,9 +10,11 @@ import type {
   DocTemplatePage,
   LegacyBackgroundImagePosition,
 } from '../types/templates';
+import { resolveImage, type TemplateContext } from './templateFields';
 
 export type {
   BackgroundFillType,
+  BackgroundImageFieldKey,
   BackgroundImageFit,
   BackgroundImagePosition,
   BackgroundImageSize,
@@ -19,6 +22,16 @@ export type {
 } from '../types/templates';
 
 export const DEFAULT_PAGE_BACKGROUND = '#ffffff';
+
+export const BACKGROUND_IMAGE_FIELD_OPTIONS: {
+  value: BackgroundImageFieldKey;
+  label: string;
+  title: string;
+}[] = [
+  { value: 'work.image', label: "Image de l'œuvre", title: "Utilise la première image de l'œuvre" },
+  { value: 'artist.photo', label: 'Photo artiste', title: "Utilise la photo de l'artiste" },
+  { value: 'expo.affiche', label: 'Image exposition', title: "Utilise l'affiche de l'exposition" },
+];
 
 const LEGACY_POSITION_MAP: Record<LegacyBackgroundImagePosition, BackgroundImagePosition> = {
   'top left': { x: 0, xUnit: '%', y: 0, yUnit: '%' },
@@ -103,6 +116,7 @@ export interface SurfaceBackground {
   fillType: BackgroundFillType;
   color: string;
   image?: string;
+  imageField?: BackgroundImageFieldKey;
   imageFit: BackgroundImageFit;
   imageSize: BackgroundImageSize;
   imagePosition: BackgroundImagePosition;
@@ -114,32 +128,54 @@ export interface BackgroundValue {
   type: BackgroundFillType;
   color: string;
   image?: string;
+  imageField?: BackgroundImageFieldKey;
   imageFit: BackgroundImageFit;
   imageSize: BackgroundImageSize;
   imagePosition: BackgroundImagePosition;
 }
 
+function hasStoredBackgroundImage(
+  backgroundImage?: string,
+  backgroundImageField?: BackgroundImageFieldKey,
+): boolean {
+  return Boolean(backgroundImage) || Boolean(backgroundImageField);
+}
+
+function resolveStoredBackgroundImage(
+  backgroundImage: string | undefined,
+  backgroundImageField: BackgroundImageFieldKey | undefined,
+  ctx?: TemplateContext,
+): string | undefined {
+  if (backgroundImageField) {
+    return ctx ? (resolveImage(backgroundImageField, ctx) ?? undefined) : undefined;
+  }
+  return backgroundImage;
+}
+
 export function getPageBackground(
   page: DocTemplatePage,
   template: Pick<DocTemplate, 'background'>,
+  ctx?: TemplateContext,
 ): string {
-  return resolvePageSurfaceBackground(page, template).color;
+  return resolvePageSurfaceBackground(page, template, ctx).color;
 }
 
 export function resolvePageSurfaceBackground(
   page: DocTemplatePage,
   template: Pick<DocTemplate, 'background'>,
+  ctx?: TemplateContext,
 ): SurfaceBackground {
   const templateColor = template.background ?? DEFAULT_PAGE_BACKGROUND;
   const imageFit = normalizeBackgroundImageFit(page.backgroundImageFit);
   const imageSize = normalizeBackgroundImageSize(page.backgroundImageSize);
   const imagePosition = normalizeBackgroundImagePosition(page.backgroundImagePosition);
 
-  if (page.backgroundType === 'image' && page.backgroundImage) {
+  if (page.backgroundType === 'image' && hasStoredBackgroundImage(page.backgroundImage, page.backgroundImageField)) {
     return {
       fillType: 'image',
       color: page.background ?? templateColor,
-      image: page.backgroundImage,
+      image: resolveStoredBackgroundImage(page.backgroundImage, page.backgroundImageField, ctx),
+      imageField: page.backgroundImageField,
       imageFit,
       imageSize,
       imagePosition,
@@ -162,20 +198,25 @@ export function pageHasCustomBackground(page: DocTemplatePage): boolean {
   return (
     (page.background != null && page.background !== '') ||
     Boolean(page.backgroundImage) ||
+    Boolean(page.backgroundImageField) ||
     page.backgroundType === 'image'
   );
 }
 
-export function resolveBlockSurfaceBackground(block: DocBlock): SurfaceBackground | null {
+export function resolveBlockSurfaceBackground(
+  block: DocBlock,
+  ctx?: TemplateContext,
+): SurfaceBackground | null {
   const imageFit = normalizeBackgroundImageFit(block.backgroundImageFit);
   const imageSize = normalizeBackgroundImageSize(block.backgroundImageSize);
   const imagePosition = normalizeBackgroundImagePosition(block.backgroundImagePosition);
 
-  if (block.backgroundType === 'image' && block.backgroundImage) {
+  if (block.backgroundType === 'image' && hasStoredBackgroundImage(block.backgroundImage, block.backgroundImageField)) {
     return {
       fillType: 'image',
       color: block.backgroundColor ?? '#e8e4dc',
-      image: block.backgroundImage,
+      image: resolveStoredBackgroundImage(block.backgroundImage, block.backgroundImageField, ctx),
+      imageField: block.backgroundImageField,
       imageFit,
       imageSize,
       imagePosition,
@@ -201,6 +242,7 @@ export function blockHasCustomBackground(block: DocBlock): boolean {
   return (
     Boolean(block.backgroundColor) ||
     Boolean(block.backgroundImage) ||
+    Boolean(block.backgroundImageField) ||
     block.backgroundType === 'image'
   );
 }
@@ -228,8 +270,9 @@ export function surfaceBackgroundToCss(surface: SurfaceBackground | null): CSSPr
 export function pageSurfaceToCss(
   page: DocTemplatePage,
   template: Pick<DocTemplate, 'background'>,
+  ctx?: TemplateContext,
 ): CSSProperties {
-  return surfaceBackgroundToCss(resolvePageSurfaceBackground(page, template));
+  return surfaceBackgroundToCss(resolvePageSurfaceBackground(page, template, ctx));
 }
 
 export function blockBackgroundValueFromPage(
@@ -237,11 +280,14 @@ export function blockBackgroundValueFromPage(
   template: Pick<DocTemplate, 'background'>,
 ): BackgroundValue {
   const surface = resolvePageSurfaceBackground(page, template);
-  const type = page.backgroundType ?? (page.backgroundImage ? 'image' : 'color');
+  const type =
+    page.backgroundType ??
+    (hasStoredBackgroundImage(page.backgroundImage, page.backgroundImageField) ? 'image' : 'color');
   return {
     type,
     color: surface.color,
     image: page.backgroundImage,
+    imageField: page.backgroundImageField,
     imageFit: normalizeBackgroundImageFit(page.backgroundImageFit ?? surface.imageFit),
     imageSize: normalizeBackgroundImageSize(page.backgroundImageSize ?? surface.imageSize),
     imagePosition: normalizeBackgroundImagePosition(page.backgroundImagePosition ?? surface.imagePosition),
@@ -250,11 +296,14 @@ export function blockBackgroundValueFromPage(
 
 export function blockBackgroundValueFromBlock(block: DocBlock): BackgroundValue {
   const surface = resolveBlockSurfaceBackground(block);
-  const type = block.backgroundType ?? (block.backgroundImage ? 'image' : 'color');
+  const type =
+    block.backgroundType ??
+    (hasStoredBackgroundImage(block.backgroundImage, block.backgroundImageField) ? 'image' : 'color');
   return {
     type,
     color: surface?.color ?? '#e8e4dc',
     image: block.backgroundImage,
+    imageField: block.backgroundImageField,
     imageFit: normalizeBackgroundImageFit(block.backgroundImageFit ?? 'cover'),
     imageSize: normalizeBackgroundImageSize(block.backgroundImageSize),
     imagePosition: normalizeBackgroundImagePosition(block.backgroundImagePosition),
@@ -265,7 +314,8 @@ export function pagePatchFromBackgroundValue(value: BackgroundValue): Partial<Do
   if (value.type === 'image') {
     return {
       backgroundType: 'image',
-      backgroundImage: value.image,
+      backgroundImage: value.imageField ? undefined : value.image,
+      backgroundImageField: value.imageField,
       backgroundImageFit: value.imageFit,
       backgroundImageSize: value.imageSize,
       backgroundImagePosition: value.imagePosition,
@@ -276,6 +326,7 @@ export function pagePatchFromBackgroundValue(value: BackgroundValue): Partial<Do
     backgroundType: 'color',
     background: value.color,
     backgroundImage: undefined,
+    backgroundImageField: undefined,
     backgroundImageFit: value.imageFit,
     backgroundImageSize: value.imageSize,
     backgroundImagePosition: value.imagePosition,
@@ -286,7 +337,8 @@ export function blockPatchFromBackgroundValue(value: BackgroundValue): Partial<D
   if (value.type === 'image') {
     return {
       backgroundType: 'image',
-      backgroundImage: value.image,
+      backgroundImage: value.imageField ? undefined : value.image,
+      backgroundImageField: value.imageField,
       backgroundImageFit: value.imageFit,
       backgroundImageSize: value.imageSize,
       backgroundImagePosition: value.imagePosition,
@@ -297,6 +349,7 @@ export function blockPatchFromBackgroundValue(value: BackgroundValue): Partial<D
     backgroundType: 'color',
     backgroundColor: value.color,
     backgroundImage: undefined,
+    backgroundImageField: undefined,
     backgroundImageFit: value.imageFit,
     backgroundImageSize: value.imageSize,
     backgroundImagePosition: value.imagePosition,
@@ -308,6 +361,7 @@ export function clearPageBackgroundPatch(): Partial<DocTemplatePage> {
     background: undefined,
     backgroundType: undefined,
     backgroundImage: undefined,
+    backgroundImageField: undefined,
     backgroundImageFit: undefined,
     backgroundImageSize: undefined,
     backgroundImagePosition: undefined,
@@ -319,8 +373,13 @@ export function clearBlockBackgroundPatch(): Partial<DocBlock> {
     backgroundColor: undefined,
     backgroundType: undefined,
     backgroundImage: undefined,
+    backgroundImageField: undefined,
     backgroundImageFit: undefined,
     backgroundImageSize: undefined,
     backgroundImagePosition: undefined,
   };
+}
+
+export function backgroundImageFieldLabel(field: BackgroundImageFieldKey): string {
+  return BACKGROUND_IMAGE_FIELD_OPTIONS.find((o) => o.value === field)?.label ?? field;
 }

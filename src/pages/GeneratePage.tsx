@@ -18,6 +18,7 @@ import type { Work } from '../types';
 import { generateTemplateDocument } from '../utils/templatePdf';
 import { countExpandedPdfPages } from '../utils/templatePages';
 import type { TemplateContext } from '../utils/templateFields';
+import { withExhibitionArtists } from '../utils/templateFields';
 import { useFonts } from '../hooks/useFonts';
 import { collectFontRefsFromRoot, collectFontRefsFromTemplate } from '../utils/fontRegistry';
 
@@ -101,11 +102,17 @@ export function GeneratePage() {
     }
 
     await run('modele', async () => {
-      const contexts: TemplateContext[] = selected.map((work) => ({
-        work,
-        artist: artistMap.get(work.artisteId),
-        exhibition: expo,
-      }));
+      const contexts: TemplateContext[] = selected.map((work) =>
+        withExhibitionArtists(
+          {
+            work,
+            artist: artistMap.get(work.artisteId),
+            exhibition: expo,
+          },
+          artistMap,
+          works,
+        ),
+      );
 
       await ensureLoaded(collectFontRefsFromTemplate(tpl));
       await generateTemplateDocument(
@@ -128,18 +135,24 @@ export function GeneratePage() {
       alert('Modèle catalogue ou exposition manquant.');
       return;
     }
-    const { works: expoWorks, artist } = await getExhibitionWithWorks(expo);
+    const { works: expoWorks } = await getExhibitionWithWorks(expo);
     if (!expoWorks.length) {
       alert('Aucune œuvre liée à cette exposition.');
       return;
     }
 
     await run('Catalogue', async () => {
-      const contexts = expoWorks.map((work) => ({
-        work,
-        artist,
-        exhibition: expo,
-      }));
+      const contexts = expoWorks.map((work) =>
+        withExhibitionArtists(
+          {
+            work,
+            artist: artistMap.get(work.artisteId),
+            exhibition: expo,
+          },
+          artistMap,
+          expoWorks,
+        ),
+      );
       await ensureLoaded(collectFontRefsFromTemplate(tpl));
       await generateTemplateDocument(
         tpl,
@@ -161,7 +174,11 @@ export function GeneratePage() {
     }
     const { works: expoWorks, artist } = await getExhibitionWithWorks(expo);
     const work = expoWorks[0];
-    const ctx: TemplateContext = { work, artist, exhibition: expo };
+    const ctx = withExhibitionArtists(
+      { work, artist, exhibition: expo },
+      artistMap,
+      expoWorks,
+    );
 
     await run('Presse', async () => {
       await ensureLoaded(collectFontRefsFromTemplate(tpl));

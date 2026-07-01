@@ -1,5 +1,6 @@
 import type {
   BackgroundFillType,
+  BackgroundImageFieldKey,
   BackgroundImageFit,
   BackgroundImagePosition,
   BackgroundImageSize,
@@ -15,6 +16,7 @@ export interface PageTemplate {
   background?: string;
   backgroundType?: BackgroundFillType;
   backgroundImage?: string;
+  backgroundImageField?: BackgroundImageFieldKey;
   backgroundImageFit?: BackgroundImageFit;
   backgroundImageSize?: BackgroundImageSize;
   backgroundImagePosition?: BackgroundImagePosition;

@@ -4,6 +4,7 @@ import { getBlockLabel } from '../../utils/blockLabels';
 import { findParent } from '../../utils/blockTree';
 
 const BLOCK_ID_MIME = 'application/atelier-block-id';
+const BLOCK_DUPLICATE_MIME = 'application/atelier-block-duplicate-ids';
 
 type TreeDropPosition = 'before' | 'after' | 'inside';
 
@@ -14,10 +15,11 @@ interface TreeDropTarget {
 
 interface EditorBlockTreeProps {
   root: DocBlock;
-  selectedId: string | null;
+  selectedIds: string[];
   readonly?: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, options: { shiftKey: boolean }) => void;
   onMove?: (blockId: string, newParentId: string, index?: number) => void;
+  onDuplicate?: (blockIds: string[], newParentId: string, index?: number) => void;
 }
 
 function getDropPosition(e: DragEvent, block: DocBlock, isPageRoot: boolean): TreeDropPosition {
@@ -66,29 +68,39 @@ function resolveTreeDrop(
   };
 }
 
+function resolveDragBlockIds(blockId: string, selectedIds: string[], pageRootId: string): string[] {
+  if (selectedIds.includes(blockId) && selectedIds.length > 1) {
+    return selectedIds.filter((id) => id !== pageRootId);
+  }
+  return [blockId];
+}
+
 function BlockTreeNode({
   block,
   pageRootId,
   root,
-  selectedId,
+  selectedIds,
   dropTarget,
   readonly = false,
   onSelect,
   onMove,
+  onDuplicate,
   onDropTargetChange,
 }: {
   block: DocBlock;
   pageRootId: string;
   root: DocBlock;
-  selectedId: string | null;
+  selectedIds: string[];
   dropTarget: TreeDropTarget | null;
   readonly?: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, options: { shiftKey: boolean }) => void;
   onMove?: (blockId: string, newParentId: string, index?: number) => void;
+  onDuplicate?: (blockIds: string[], newParentId: string, index?: number) => void;
   onDropTargetChange: (target: TreeDropTarget | null) => void;
 }) {
   const isPageRoot = block.id === pageRootId;
   const label = getBlockLabel(block, isPageRoot);
+  const isSelected = selectedIds.includes(block.id);
   const isDropTarget = dropTarget?.blockId === block.id;
   const dropClass = isDropTarget
     ? dropTarget.position === 'inside'
@@ -101,34 +113,61 @@ function BlockTreeNode({
   const handleDragStart = (e: DragEvent) => {
     if (readonly || isPageRoot) return;
     e.stopPropagation();
-    e.dataTransfer.setData(BLOCK_ID_MIME, block.id);
-    e.dataTransfer.effectAllowed = 'move';
+    const dragIds = resolveDragBlockIds(block.id, selectedIds, pageRootId);
+    if (e.altKey && onDuplicate) {
+      e.dataTransfer.setData(BLOCK_DUPLICATE_MIME, JSON.stringify(dragIds));
+      e.dataTransfer.effectAllowed = 'copy';
+    } else {
+      e.dataTransfer.setData(BLOCK_ID_MIME, block.id);
+      e.dataTransfer.effectAllowed = 'move';
+    }
   };
 
   const handleDragOver = (e: DragEvent) => {
-    if (readonly || !onMove) return;
+    if (readonly || (!onMove && !onDuplicate)) return;
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
+    const isDuplicate = e.dataTransfer.types.includes(BLOCK_DUPLICATE_MIME);
+    e.dataTransfer.dropEffect = isDuplicate ? 'copy' : 'move';
     const position = getDropPosition(e, block, isPageRoot);
     onDropTargetChange({ blockId: block.id, position });
   };
 
   const handleDrop = (e: DragEvent) => {
-    if (readonly || !onMove) return;
+    if (readonly) return;
     e.preventDefault();
     e.stopPropagation();
     onDropTargetChange(null);
 
+    const position = getDropPosition(e, block, isPageRoot);
+    const duplicatePayload = e.dataTransfer.getData(BLOCK_DUPLICATE_MIME);
+
+    if (duplicatePayload && onDuplicate) {
+      let dragIds: string[] = [];
+      try {
+        dragIds = JSON.parse(duplicatePayload) as string[];
+      } catch {
+        return;
+      }
+      if (!dragIds.length) return;
+
+      const anchorId = dragIds[0];
+      const resolved = resolveTreeDrop(root, anchorId, block, position, isPageRoot);
+      if (!resolved) return;
+
+      onDuplicate(dragIds, resolved.parentId, resolved.index);
+      return;
+    }
+
+    if (!onMove) return;
+
     const dragId = e.dataTransfer.getData(BLOCK_ID_MIME);
     if (!dragId) return;
 
-    const position = getDropPosition(e, block, isPageRoot);
     const resolved = resolveTreeDrop(root, dragId, block, position, isPageRoot);
     if (!resolved) return;
 
     onMove(dragId, resolved.parentId, resolved.index);
-    onSelect(dragId);
   };
 
   return (
@@ -144,13 +183,13 @@ function BlockTreeNode({
     >
       <button
         type="button"
-        className={`block-tree-btn${selectedId === block.id ? ' active' : ''}${dropClass}${
+        className={`block-tree-btn${isSelected ? ' active' : ''}${dropClass}${
           !readonly && !isPageRoot ? ' block-tree-btn-draggable' : ''
         }`}
         draggable={!readonly && !isPageRoot}
         onDragStart={handleDragStart}
         onDragEnd={() => onDropTargetChange(null)}
-        onClick={() => onSelect(block.id)}
+        onClick={(e) => onSelect(block.id, { shiftKey: e.shiftKey })}
       >
         {label}
       </button>
@@ -162,11 +201,12 @@ function BlockTreeNode({
               block={child}
               pageRootId={pageRootId}
               root={root}
-              selectedId={selectedId}
+              selectedIds={selectedIds}
               dropTarget={dropTarget}
               readonly={readonly}
               onSelect={onSelect}
               onMove={onMove}
+              onDuplicate={onDuplicate}
               onDropTargetChange={onDropTargetChange}
             />
           ))}
@@ -178,10 +218,11 @@ function BlockTreeNode({
 
 export function EditorBlockTree({
   root,
-  selectedId,
+  selectedIds,
   readonly = false,
   onSelect,
   onMove,
+  onDuplicate,
 }: EditorBlockTreeProps) {
   const [dropTarget, setDropTarget] = useState<TreeDropTarget | null>(null);
 
@@ -191,19 +232,22 @@ export function EditorBlockTree({
 
   return (
     <div className={`editor-block-tree${readonly ? ' is-readonly' : ''}`}>
-      {!readonly && onMove && (
-        <p className="hint block-tree-hint">Glisser-déposer pour déplacer dans la structure.</p>
+      {!readonly && (onMove || onDuplicate) && (
+        <p className="hint block-tree-hint">
+          Glisser-déposer pour déplacer. Alt + glisser pour dupliquer. Maj + clic pour sélection multiple.
+        </p>
       )}
       <ul className="block-tree-root">
         <BlockTreeNode
           block={root}
           pageRootId={root.id}
           root={root}
-          selectedId={selectedId}
+          selectedIds={selectedIds}
           dropTarget={dropTarget}
           readonly={readonly}
           onSelect={onSelect}
           onMove={onMove}
+          onDuplicate={onDuplicate}
           onDropTargetChange={handleDropTargetChange}
         />
       </ul>

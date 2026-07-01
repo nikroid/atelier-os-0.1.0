@@ -37,13 +37,14 @@ import {
   addChild,
   createBlockId,
   duplicateBlockAfter,
+  duplicateBlocksAt,
   findBlock,
   moveBlock,
   moveBlockToParent,
   removeBlock,
   updateBlock,
 } from '../utils/blockTree';
-import type { TemplateContext } from '../utils/templateFields';
+import { withExhibitionArtists, type TemplateContext } from '../utils/templateFields';
 import {
   pageSurfaceToCss,
   type SurfaceBackground,
@@ -89,7 +90,7 @@ function EditorDropCanvas({
   templateBackground,
   zoomScale,
   previewCtx,
-  selectedBlockId,
+  selectedBlockIds,
   onSelectBlock,
 }: {
   pages: DocTemplatePage[];
@@ -105,9 +106,10 @@ function EditorDropCanvas({
   templateBackground: string;
   zoomScale: number;
   previewCtx: TemplateContext;
-  selectedBlockId: string | null;
+  selectedBlockIds: string[];
   onSelectBlock: (pageIndex: number, blockId: string) => void;
 }) {
+  const selectedBlockId = selectedBlockIds[selectedBlockIds.length - 1] ?? null;
   const { hover } = useDropHover();
   const activePage = pages[activePageIndex] ?? pages[0];
 
@@ -142,7 +144,7 @@ function EditorDropCanvas({
           const isPageSelected = pageIndex === activePageIndex;
           const isPageFocusSelected = isPageSelected && !selectedBlockId;
           const isActiveForEdit = isPageSelected && !isReadonly;
-          const pageSurfaceCss = pageSurfaceToCss(page, { background: templateBackground });
+          const pageSurfaceCss = pageSurfaceToCss(page, { background: templateBackground }, previewCtx);
 
           return (
             <div key={page.id} className="editor-page-unit" style={{ width: pageW }}>
@@ -187,6 +189,7 @@ function EditorDropCanvas({
                     ctx={previewCtx}
                     mode={isReadonly ? 'preview' : 'edit'}
                     selectedId={isPageSelected ? selectedBlockId : null}
+                    selectedIds={isPageSelected ? selectedBlockIds : undefined}
                     onSelect={(id) => onSelectBlock(pageIndex, id)}
                     onPageBackgroundClick={() => onPageBackground(pageIndex)}
                     onDrop={
@@ -353,7 +356,8 @@ export function EditorPage() {
   const { ensureLoaded } = useFonts();
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [selectedBlockIds, setSelectedBlockIds] = useState<string[]>([]);
+  const selectedBlockId = selectedBlockIds[selectedBlockIds.length - 1] ?? null;
   const [sideTab, setSideTab] = useState<EditorSideTab>('props');
   const [previewWorkId, setPreviewWorkId] = useState('');
   const [previewExpoId, setPreviewExpoId] = useState('');
@@ -392,7 +396,7 @@ export function EditorPage() {
       if (!copy.format) copy.format = 'a4';
       if (copy.margin === undefined) copy.margin = 12;
       history.reset(copy);
-      setSelectedBlockId(null);
+      setSelectedBlockIds([]);
       setActivePageIndex(0);
       setSaved(true);
     }
@@ -413,7 +417,7 @@ export function EditorPage() {
     const work = works?.find((w) => w.id === previewWorkId) ?? works?.[0];
     const artist = work ? artistMap.get(work.artisteId) : artists?.[0];
     const exhibition = exhibitions?.find((e) => e.id === previewExpoId) ?? exhibitions?.[0];
-    return { work, artist, exhibition };
+    return withExhibitionArtists({ work, artist, exhibition }, artistMap, works);
   }, [works, previewWorkId, artistMap, artists, exhibitions, previewExpoId]);
 
   const templatePages = useMemo(
@@ -490,7 +494,7 @@ export function EditorPage() {
     const page = templatePages[activePageIndex];
     if (!id || !page || id === page.root.id) return;
     commitPageRoot(page.id, (root) => removeBlock(root, id));
-    setSelectedBlockId(null);
+    setSelectedBlockIds([]);
   }, [commitPageRoot, templatePages, activePageIndex]);
 
   const handleBlockDuplicate = useCallback(() => {
@@ -549,7 +553,7 @@ export function EditorPage() {
     const nextIndex = templatePages.length;
     commitDraft((t) => addTemplatePage(t, defaultPageKindForTemplate(t.type)));
     setActivePageIndex(nextIndex);
-    setSelectedBlockId(null);
+    setSelectedBlockIds([]);
   }, [commitDraft, templatePages.length]);
 
   const handleInsertPageAfter = useCallback(
@@ -557,20 +561,20 @@ export function EditorPage() {
       const nextIndex = afterIndex + 1;
       commitDraft((t) => insertTemplatePage(t, afterIndex, defaultPageKindForTemplate(t.type)));
       setActivePageIndex(nextIndex);
-      setSelectedBlockId(null);
+      setSelectedBlockIds([]);
     },
     [commitDraft],
   );
 
   const handlePageBackground = useCallback((pageIndex: number) => {
     setActivePageIndex(pageIndex);
-    setSelectedBlockId(null);
+    setSelectedBlockIds([]);
     setSideTab('props');
   }, []);
 
   const handleSelectBlock = useCallback((pageIndex: number, blockId: string) => {
     setActivePageIndex(pageIndex);
-    setSelectedBlockId(blockId);
+    setSelectedBlockIds([blockId]);
     setSideTab('props');
   }, []);
 
@@ -586,7 +590,7 @@ export function EditorPage() {
         if (active > removedIndex) return active - 1;
         return active;
       });
-      setSelectedBlockId(null);
+      setSelectedBlockIds([]);
     },
     [commitDraft, templatePages],
   );
@@ -632,7 +636,7 @@ export function EditorPage() {
     const pageTemplate = pageTemplates?.find((tpl) => tpl.id === selectedPageTemplateId);
     if (!pageTemplate) return;
     commitDraft((t) => applyPageTemplate(t, activePage.id, normalizePageTemplate(pageTemplate)));
-    setSelectedBlockId(null);
+    setSelectedBlockIds([]);
     setLoadPageTemplateOpen(false);
   }, [activePage, commitDraft, pageTemplates, selectedPageTemplateId]);
 
@@ -645,14 +649,14 @@ export function EditorPage() {
         if (fromIndex > current && toIndex <= current) return current + 1;
         return current;
       });
-      setSelectedBlockId(null);
+      setSelectedBlockIds([]);
     },
     [commitDraft],
   );
 
   const handleSelectPageFromPreview = useCallback((pageIndex: number) => {
     setActivePageIndex(pageIndex);
-    setSelectedBlockId(null);
+    setSelectedBlockIds([]);
   }, []);
 
   const save = async () => {
@@ -965,7 +969,7 @@ export function EditorPage() {
                   templateBackground={draft.background}
                   zoomScale={zoomScale}
                   previewCtx={previewCtx}
-                  selectedBlockId={selectedBlockId}
+                  selectedBlockIds={selectedBlockIds}
                   onSelectBlock={handleSelectBlock}
                 />
               </DropHoverProvider>
@@ -995,6 +999,7 @@ export function EditorPage() {
                       pageIndex={activePageIndex}
                       pageCount={templatePages.length}
                       templateBackground={draft?.background ?? DEFAULT_PAGE_BACKGROUND}
+                      previewCtx={previewCtx}
                       onKindChange={handlePageKindChange}
                       onBackgroundPatch={handlePageBackgroundPatch}
                       onSaveAsPageTemplate={openSavePageTemplate}
@@ -1025,6 +1030,7 @@ export function EditorPage() {
                         pageIndex={activePageIndex}
                         pageCount={templatePages.length}
                         templateBackground={draft?.background ?? DEFAULT_PAGE_BACKGROUND}
+                        previewCtx={previewCtx}
                         onKindChange={handlePageKindChange}
                         onBackgroundPatch={handlePageBackgroundPatch}
                         onSaveAsPageTemplate={openSavePageTemplate}
@@ -1038,17 +1044,32 @@ export function EditorPage() {
                 activePage ? (
                   <EditorBlockTree
                     root={activePage.root}
-                    selectedId={selectedBlockId}
+                    selectedIds={selectedBlockIds}
                     readonly={isReadonly}
-                    onSelect={(id) => {
-                      setSelectedBlockId(id);
+                    onSelect={(id, { shiftKey }) => {
+                      if (shiftKey) {
+                        setSelectedBlockIds((prev) =>
+                          prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                        );
+                      } else {
+                        setSelectedBlockIds([id]);
+                      }
                       setSideTab('props');
                     }}
                     onMove={(blockId, parentId, index) => {
                       commitPageRoot(activePage.id, (root) =>
                         moveBlockToParent(root, blockId, parentId, index),
                       );
-                      setSelectedBlockId(blockId);
+                      setSelectedBlockIds([blockId]);
+                    }}
+                    onDuplicate={(blockIds, parentId, index) => {
+                      let newIds: string[] = [];
+                      commitPageRoot(activePage.id, (root) => {
+                        const result = duplicateBlocksAt(root, blockIds, parentId, index);
+                        newIds = result.newIds;
+                        return result.root;
+                      });
+                      if (newIds.length) setSelectedBlockIds(newIds);
                     }}
                   />
                 ) : null

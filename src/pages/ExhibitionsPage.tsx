@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { EmptyState } from '../components/EmptyState';
+import { ImageUpload } from '../components/ImageUpload';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
 import { db, now, uid } from '../db/database';
@@ -15,6 +16,7 @@ const emptyExpo = (): Omit<Exhibition, 'id' | 'createdAt' | 'updatedAt'> => ({
   texte_curatorial: '',
   artisteId: '',
   oeuvreIds: [],
+  affiche: '',
 });
 
 export function ExhibitionsPage() {
@@ -42,6 +44,7 @@ export function ExhibitionsPage() {
       texte_curatorial: expo.texte_curatorial,
       artisteId: expo.artisteId,
       oeuvreIds: [...expo.oeuvreIds],
+      affiche: expo.affiche ?? '',
     });
     setModalOpen(true);
   };
@@ -94,7 +97,14 @@ export function ExhibitionsPage() {
         <div className="expo-list">
           {exhibitions.map((expo) => (
             <article key={expo.id} className="expo-card">
-              <div>
+              <div className="expo-card-poster" aria-hidden={!expo.affiche}>
+                {expo.affiche ? (
+                  <img src={expo.affiche} alt="" />
+                ) : (
+                  <span className="expo-card-poster-placeholder">A</span>
+                )}
+              </div>
+              <div className="expo-card-body">
                 <h3>{expo.titre}</h3>
                 <p className="meta">{artistMap.get(expo.artisteId)?.nom ?? '—'}</p>
                 <p className="meta">{expo.lieu}</p>
@@ -131,6 +141,17 @@ export function ExhibitionsPage() {
           <label>
             Lieu
             <input value={form.lieu} onChange={(e) => setForm({ ...form, lieu: e.target.value })} />
+          </label>
+          <label>
+            Affiche (format A)
+            <span className="hint">Ratio portrait 1∶√2 (ex. A4). Glissez une image ou parcourez.</span>
+            <div className="expo-affiche-upload">
+              <ImageUpload
+                images={form.affiche ? [form.affiche] : []}
+                max={1}
+                onChange={(imgs) => setForm({ ...form, affiche: imgs[0] ?? '' })}
+              />
+            </div>
           </label>
           <div className="form-row">
             <label>

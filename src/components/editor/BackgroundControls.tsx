@@ -1,7 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
-import type { BackgroundFillType, BackgroundImageFit, BackgroundValue } from '../../utils/backgroundStyle';
-import { DEFAULT_IMAGE_SIZE } from '../../utils/backgroundStyle';
+import type { BackgroundFillType, BackgroundImageFieldKey, BackgroundImageFit, BackgroundValue } from '../../utils/backgroundStyle';
+import {
+  BACKGROUND_IMAGE_FIELD_OPTIONS,
+  DEFAULT_IMAGE_SIZE,
+  backgroundImageFieldLabel,
+} from '../../utils/backgroundStyle';
 import { fileToDataUrl } from '../../utils/helpers';
+import { shortcodeTag } from '../../utils/templateShortcodes';
+import type { TemplateContext } from '../../utils/templateFields';
+import { resolveImage } from '../../utils/templateFields';
 import { BackgroundPositionPicker } from './BackgroundPositionPicker';
 import { BackgroundSizePicker } from './BackgroundSizePicker';
 import { ColorFieldRow } from './ColorFieldRow';
@@ -10,6 +17,11 @@ import { IconToggleGroup } from './IconToggleGroup';
 const FILL_TYPE_OPTIONS = [
   { value: 'color' as const, label: 'Couleur', title: 'Couleur unie' },
   { value: 'image' as const, label: 'Image', title: 'Image de fond' },
+];
+
+const IMAGE_SOURCE_OPTIONS = [
+  { value: 'static' as const, label: 'Importée', title: 'Image fixe importée depuis un fichier' },
+  { value: 'dynamic' as const, label: 'Dynamique', title: 'Image liée aux données (œuvre, artiste, exposition)' },
 ];
 
 const IMAGE_FIT_OPTIONS = [
@@ -22,6 +34,7 @@ interface BackgroundControlsProps {
   label: string;
   value: BackgroundValue;
   disabled?: boolean;
+  previewCtx?: TemplateContext;
   onChange: (value: BackgroundValue) => void;
   resetLabel?: string;
   onReset?: () => void;
@@ -33,6 +46,7 @@ export function BackgroundControls({
   label,
   value,
   disabled = false,
+  previewCtx,
   onChange,
   resetLabel,
   onReset,
@@ -42,9 +56,36 @@ export function BackgroundControls({
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
+  const imageSourceMode = value.imageField ? 'dynamic' : 'static';
+  const resolvedDynamicImage =
+    value.imageField && previewCtx ? resolveImage(value.imageField, previewCtx) : null;
+
   const setType = (type: BackgroundFillType) => {
     if (type === value.type) return;
     onChange({ ...value, type });
+  };
+
+  const setImageSourceMode = (mode: 'static' | 'dynamic') => {
+    if (mode === imageSourceMode) return;
+    if (mode === 'static') {
+      onChange({ ...value, type: 'image', imageField: undefined });
+      return;
+    }
+    onChange({
+      ...value,
+      type: 'image',
+      image: undefined,
+      imageField: value.imageField ?? 'work.image',
+    });
+  };
+
+  const setDynamicField = (imageField: BackgroundImageFieldKey) => {
+    onChange({
+      ...value,
+      type: 'image',
+      image: undefined,
+      imageField,
+    });
   };
 
   const handleImagePick = useCallback(
@@ -55,6 +96,7 @@ export function BackgroundControls({
         ...value,
         type: 'image',
         image: dataUrl,
+        imageField: undefined,
       });
     },
     [disabled, onChange, value],
@@ -93,60 +135,103 @@ export function BackgroundControls({
         />
       ) : (
         <div className="background-image-section">
-          <div className="background-image-panel">
-            {value.image ? (
-              <>
-                <div className="background-image-preview-frame">
-                  <img src={value.image} alt="" className="background-image-preview-img" />
-                </div>
-                <div className="background-image-toolbar">
-                  <label className={`btn btn-secondary btn-sm${disabled ? ' disabled' : ''}`}>
-                    Remplacer
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept="image/*"
-                      hidden
+          <IconToggleGroup
+            label="Source"
+            compact
+            value={imageSourceMode}
+            onChange={setImageSourceMode}
+            options={IMAGE_SOURCE_OPTIONS}
+          />
+
+          {imageSourceMode === 'dynamic' ? (
+            <div className="background-image-panel">
+              <div className="shortcode-insert">
+                <p className="hint">Données dynamiques — cliquez pour sélectionner :</p>
+                <div className="shortcode-chips">
+                  {BACKGROUND_IMAGE_FIELD_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`shortcode-chip${value.imageField === option.value ? ' is-active' : ''}`}
                       disabled={disabled}
-                      onChange={onFileInput}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={disabled}
-                    onClick={() => onChange({ ...value, image: undefined })}
-                  >
-                    Retirer
-                  </button>
+                      title={option.title}
+                      onClick={() => setDynamicField(option.value)}
+                    >
+                      {shortcodeTag(option.label)}
+                    </button>
+                  ))}
                 </div>
-              </>
-            ) : (
-              <label
-                className={`background-image-dropzone${dragging ? ' is-dragging' : ''}${disabled ? ' is-disabled' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (!disabled) setDragging(true);
-                }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={onDrop}
-              >
-                <span className="background-image-dropzone-icon" aria-hidden>
-                  ↑
-                </span>
-                <span className="background-image-dropzone-title">Ajouter une image</span>
-                <span className="background-image-dropzone-hint">Glisser-déposer ou cliquer</span>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  disabled={disabled}
-                  onChange={onFileInput}
-                />
-              </label>
-            )}
-          </div>
+              </div>
+              {value.imageField ? (
+                resolvedDynamicImage ? (
+                  <div className="background-image-preview-frame">
+                    <img src={resolvedDynamicImage} alt="" className="background-image-preview-img" />
+                  </div>
+                ) : (
+                  <p className="shortcode-preview">
+                    <span className="hint">Aperçu :</span>{' '}
+                    {shortcodeTag(backgroundImageFieldLabel(value.imageField))} — selon les données de
+                    prévisualisation
+                  </p>
+                )
+              ) : null}
+            </div>
+          ) : (
+            <div className="background-image-panel">
+              {value.image ? (
+                <>
+                  <div className="background-image-preview-frame">
+                    <img src={value.image} alt="" className="background-image-preview-img" />
+                  </div>
+                  <div className="background-image-toolbar">
+                    <label className={`btn btn-secondary btn-sm${disabled ? ' disabled' : ''}`}>
+                      Remplacer
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        disabled={disabled}
+                        onChange={onFileInput}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={disabled}
+                      onClick={() => onChange({ ...value, image: undefined })}
+                    >
+                      Retirer
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <label
+                  className={`background-image-dropzone${dragging ? ' is-dragging' : ''}${disabled ? ' is-disabled' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!disabled) setDragging(true);
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={onDrop}
+                >
+                  <span className="background-image-dropzone-icon" aria-hidden>
+                    ↑
+                  </span>
+                  <span className="background-image-dropzone-title">Ajouter une image</span>
+                  <span className="background-image-dropzone-hint">Glisser-déposer ou cliquer</span>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    disabled={disabled}
+                    onChange={onFileInput}
+                  />
+                </label>
+              )}
+            </div>
+          )}
 
           <div className="form-row form-row-dense background-image-options">
             <IconToggleGroup

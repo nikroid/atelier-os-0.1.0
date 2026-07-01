@@ -1,3 +1,6 @@
+/** Ratio ISO 216 format A en portrait (largeur / hauteur), ex. A4 = 210/297. */
+export const A_FORMAT_ASPECT_RATIO = 210 / 297;
+
 export function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

@@ -111,7 +111,8 @@ export function buildImageBlockLayout(
     inner.width = 'auto';
     inner.maxWidth = '100%';
   } else {
-    wrapper.width = w;
+    // Dimensions de layout portées par block-child-wrap ; le bloc image remplit son conteneur.
+    wrapper.width = '100%';
     inner.width = '100%';
   }
 
@@ -119,20 +120,15 @@ export function buildImageBlockLayout(
     wrapper.height = 'auto';
     inner.height = 'auto';
     wrapper.minHeight = 48;
-  } else if (isPercentSize(h)) {
-    if (fillParentHeight) {
-      wrapper.height = '100%';
-      wrapper.minHeight = 48;
-      inner.height = '100%';
-      inner.minHeight = 48;
-    } else {
-      wrapper.height = h;
-      wrapper.minHeight = 48;
-      inner.height = '100%';
-    }
-  } else {
-    wrapper.height = h;
+  } else if (fillParentHeight) {
+    wrapper.height = '100%';
+    wrapper.minHeight = 48;
     inner.height = '100%';
+    inner.minHeight = 48;
+  } else {
+    wrapper.height = '100%';
+    inner.height = '100%';
+    if (isPercentSize(h)) wrapper.minHeight = 48;
   }
 
   const shadowFilter = imageDropShadowFilter(imageShadow);
@@ -177,6 +173,7 @@ export function getImageChildWrapLayout(
   const style: CSSProperties = {
     maxWidth: '100%',
     boxSizing: 'border-box',
+    flexShrink: 0,
   };
 
   if (w === '100%') style.width = '100%';
@@ -185,7 +182,6 @@ export function getImageChildWrapLayout(
   if (parentDirection === 'column') {
     if (h !== 'auto') {
       style.height = h;
-      style.flexShrink = 0;
       if (isPercentSize(h)) style.minHeight = 48;
     }
     return style;
@@ -194,13 +190,9 @@ export function getImageChildWrapLayout(
   if (h === 'auto') {
     style.height = 'auto';
     style.minHeight = 48;
-  } else if (isPercentSize(h)) {
-    style.height = h;
-    style.flexShrink = 0;
-    style.minHeight = 48;
   } else {
     style.height = h;
-    style.flexShrink = 0;
+    if (isPercentSize(h)) style.minHeight = 48;
   }
 
   return style;

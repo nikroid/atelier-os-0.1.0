@@ -225,6 +225,7 @@ export async function seedDemoData(): Promise<void> {
       "Cette exposition réunit des œuvres qui interrogent notre rapport au vivant à l'ère numérique.",
     artisteId: artistId,
     oeuvreIds: ['work_001', 'work_002'],
+    affiche: '',
     createdAt: ts,
     updatedAt: ts,
   });

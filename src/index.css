@@ -137,6 +137,22 @@ textarea {
   border-radius: 4px;
 }
 
+button.brand-mark {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+button.brand-mark:hover {
+  filter: brightness(1.08);
+}
+
+button.brand-mark:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
 .brand strong {
   display: block;
   color: #f5f2ed;
@@ -166,6 +182,10 @@ textarea {
 
 .sidebar-toggle:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.app.sidebar-collapsed .sidebar-toggle {
+  display: none;
 }
 
 .sidebar nav {
@@ -206,10 +226,8 @@ textarea {
 }
 
 .app.sidebar-collapsed .sidebar-top {
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0;
   padding: 0.65rem 0.35rem;
   min-height: auto;
 }
@@ -217,6 +235,7 @@ textarea {
 .app.sidebar-collapsed .brand {
   flex: none;
   justify-content: center;
+  gap: 0;
 }
 
 .app.sidebar-collapsed .sidebar nav {
@@ -1002,11 +1021,66 @@ textarea {
 .expo-card {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: stretch;
+  gap: 1rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
+}
+
+.expo-card-poster {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  min-height: 5.5rem;
+  aspect-ratio: 210 / 297;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.expo-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.expo-card-poster-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  opacity: 0.45;
+}
+
+.expo-card-body {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+}
+
+.expo-card .card-actions {
+  align-self: center;
+  margin-top: 0;
+}
+
+.expo-affiche-upload .image-grid {
+  margin-top: 0.5rem;
+}
+
+.expo-affiche-upload .image-thumb {
+  width: 84px;
+  height: auto;
+  aspect-ratio: 210 / 297;
 }
 
 .expo-card h3 {
@@ -2750,6 +2824,17 @@ textarea {
   color: var(--accent);
 }
 
+.shortcode-chip.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper));
+}
+
+.shortcode-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .shortcode-preview {
   font-size: 0.8rem;
   margin: 0 0 0.75rem;
@@ -2810,6 +2895,15 @@ textarea {
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
+}
+
+/* Le conteneur orange (wrap) porte la taille ; l'image remplit la boîte (object-fit). */
+.block-child-wrap > .tpl-static-image,
+.block-child-wrap > .tpl-field.tpl-image {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 /* Enfants d'une ligne : la hauteur vient du stretch ou du % inline sur le wrap */

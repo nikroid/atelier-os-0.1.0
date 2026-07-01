@@ -1,5 +1,5 @@
 import type { FieldKey } from '../types/templates';
-import { FIELD_CATALOG, resolveField, type TemplateContext } from './templateFields';
+import { FIELD_CATALOG, isImageField, resolveField, type TemplateContext } from './templateFields';
 
 const SHORTCODE_PATTERN = /\[([^\]]+)\]/g;
 
@@ -21,9 +21,7 @@ for (const field of FIELD_CATALOG) {
 }
 
 /** Champs utilisables comme shortcode dans un bloc texte (hors images). */
-export const TEXT_SHORTCODE_FIELDS = FIELD_CATALOG.filter(
-  (f) => f.key !== 'work.image' && f.key !== 'artist.photo',
-);
+export const TEXT_SHORTCODE_FIELDS = FIELD_CATALOG.filter((f) => !isImageField(f.key));
 
 export function shortcodeTag(label: string): string {
   return `[${label}]`;
@@ -34,7 +32,7 @@ export function resolveShortcodeToken(token: string, ctx: TemplateContext): stri
   if (!key) return `[${token}]`;
 
   const def = FIELD_CATALOG.find((f) => f.key === key);
-  if (key === 'work.image' || key === 'artist.photo') return def?.preview ?? '[image]';
+  if (key === 'work.image' || key === 'artist.photo' || key === 'expo.affiche') return def?.preview ?? '[image]';
 
   const value = resolveField(key, ctx);
   return value || def?.preview || `[${token}]`;

@@ -5,6 +5,7 @@ import {
   pageHasCustomBackground,
   pagePatchFromBackgroundValue,
 } from '../../utils/backgroundStyle';
+import type { TemplateContext } from '../../utils/templateFields';
 import { pageKindLabel } from '../../utils/templatePages';
 import { BackgroundControls } from './BackgroundControls';
 import { IconToggleGroup } from './IconToggleGroup';
@@ -19,6 +20,7 @@ interface EditorPageSettingsProps {
   pageIndex: number;
   pageCount: number;
   templateBackground: string;
+  previewCtx?: TemplateContext;
   readonly?: boolean;
   onKindChange: (kind: PageKind) => void;
   onBackgroundPatch: (patch: Partial<DocTemplatePage>) => void;
@@ -32,6 +34,7 @@ export function EditorPageSettings({
   pageIndex,
   pageCount,
   templateBackground,
+  previewCtx,
   readonly = false,
   onKindChange,
   onBackgroundPatch,
@@ -50,6 +53,7 @@ export function EditorPageSettings({
       <BackgroundControls
         label="Arrière-plan"
         disabled={readonly}
+        previewCtx={previewCtx}
         value={blockBackgroundValueFromPage(page, { background: templateBackground })}
         onChange={(value) => onBackgroundPatch(pagePatchFromBackgroundValue(value))}
         resetLabel="Par défaut"

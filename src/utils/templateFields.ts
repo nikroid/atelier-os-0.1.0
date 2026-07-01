@@ -9,6 +9,55 @@ export interface FieldDef {
   preview: string;
 }
 
+/** Liste lisible : « A », « A et B », « A, B et C ». */
+export function formatArtistNames(names: string[]): string {
+  const unique = [...new Set(names.map((n) => n.trim()).filter(Boolean))];
+  if (!unique.length) return '—';
+  if (unique.length === 1) return unique[0];
+  if (unique.length === 2) return `${unique[0]} et ${unique[1]}`;
+  return `${unique.slice(0, -1).join(', ')} et ${unique[unique.length - 1]}`;
+}
+
+export function collectExhibitionArtistIds(
+  exhibition: Exhibition,
+  exhibitionWorks?: Work[],
+): string[] {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  const push = (id: string | undefined) => {
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    ids.push(id);
+  };
+
+  push(exhibition.artisteId);
+  for (const work of exhibitionWorks ?? []) {
+    push(work.artisteId);
+  }
+
+  return ids;
+}
+
+export function resolveExhibitionArtistNames(
+  exhibition: Exhibition | undefined,
+  artistMap?: ReadonlyMap<string, Artist>,
+  exhibitionWorks?: Work[],
+): string {
+  if (!exhibition || !artistMap) return '—';
+  const names = collectExhibitionArtistIds(exhibition, exhibitionWorks)
+    .map((id) => artistMap.get(id)?.nom)
+    .filter((name): name is string => Boolean(name));
+  return formatArtistNames(names);
+}
+
+export function resolveExhibitionPrimaryArtistName(
+  exhibition: Exhibition | undefined,
+  artistMap?: ReadonlyMap<string, Artist>,
+): string {
+  if (!exhibition?.artisteId || !artistMap) return '—';
+  return artistMap.get(exhibition.artisteId)?.nom ?? '—';
+}
+
 export const FIELD_CATALOG: FieldDef[] = [
   { key: 'work.image', label: 'Image de l\'œuvre', group: 'œuvre', preview: '[image]' },
   { key: 'work.titre', label: 'Titre de l\'œuvre', group: 'œuvre', preview: 'Le Vagabond' },
@@ -28,12 +77,31 @@ export const FIELD_CATALOG: FieldDef[] = [
   { key: 'expo.lieu', label: 'Lieu exposition', group: 'exposition', preview: 'Galerie du Marais' },
   { key: 'expo.dates', label: 'Dates exposition', group: 'exposition', preview: '15 sept. — 30 oct. 2026' },
   { key: 'expo.texte_curatorial', label: 'Texte curatorial', group: 'exposition', preview: 'Texte de salle…' },
+  { key: 'expo.affiche', label: 'Image exposition', group: 'exposition', preview: '[affiche]' },
+  { key: 'expo.artiste', label: 'Artiste principal (expo)', group: 'exposition', preview: 'Nicolas Labrunye' },
+  { key: 'expo.artistes', label: 'Artiste(s) exposition', group: 'exposition', preview: 'Nicolas Labrunye et Jane Doe' },
 ];
 
 export interface TemplateContext {
   work?: Work;
   artist?: Artist;
   exhibition?: Exhibition;
+  /** Résolution des champs expo.artiste(s). */
+  artistMap?: ReadonlyMap<string, Artist>;
+  /** Œuvres liées à l'exposition (pour lister tous les artistes). */
+  exhibitionWorks?: Work[];
+}
+
+export function withExhibitionArtists(
+  ctx: TemplateContext,
+  artistMap: ReadonlyMap<string, Artist>,
+  works?: Work[],
+): TemplateContext {
+  if (!ctx.exhibition || !works?.length) {
+    return { ...ctx, artistMap };
+  }
+  const exhibitionWorks = works.filter((w) => ctx.exhibition!.oeuvreIds.includes(w.id));
+  return { ...ctx, artistMap, exhibitionWorks };
 }
 
 export function resolveField(key: FieldKey, ctx: TemplateContext): string {
@@ -58,6 +126,11 @@ export function resolveField(key: FieldKey, ctx: TemplateContext): string {
         ? `${formatDate(exhibition.date_debut)} — ${formatDate(exhibition.date_fin)}`
         : '—';
     case 'expo.texte_curatorial': return exhibition?.texte_curatorial ?? '';
+    case 'expo.affiche': return '';
+    case 'expo.artiste':
+      return resolveExhibitionPrimaryArtistName(exhibition, ctx.artistMap);
+    case 'expo.artistes':
+      return resolveExhibitionArtistNames(exhibition, ctx.artistMap, ctx.exhibitionWorks);
     default: return '';
   }
 }
@@ -65,9 +138,10 @@ export function resolveField(key: FieldKey, ctx: TemplateContext): string {
 export function resolveImage(key: FieldKey, ctx: TemplateContext): string | null {
   if (key === 'work.image') return ctx.work?.images[0] ?? null;
   if (key === 'artist.photo') return ctx.artist?.photo || null;
+  if (key === 'expo.affiche') return ctx.exhibition?.affiche || null;
   return null;
 }
 
 export function isImageField(key: FieldKey): boolean {
-  return key === 'work.image' || key === 'artist.photo';
+  return key === 'work.image' || key === 'artist.photo' || key === 'expo.affiche';
 }

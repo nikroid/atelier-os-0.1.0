@@ -60,6 +60,7 @@ export function createPageTemplateFromPage(page: DocTemplatePage, nom: string): 
     background: page.background,
     backgroundType: page.backgroundType,
     backgroundImage: page.backgroundImage,
+    backgroundImageField: page.backgroundImageField,
     backgroundImageFit: page.backgroundImageFit,
     backgroundImageSize: page.backgroundImageSize
       ? JSON.parse(JSON.stringify(page.backgroundImageSize))
@@ -81,6 +82,7 @@ export function instantiatePageTemplate(pageTemplate: PageTemplate): DocTemplate
     background: normalized.background,
     backgroundType: normalized.backgroundType,
     backgroundImage: normalized.backgroundImage,
+    backgroundImageField: normalized.backgroundImageField,
     backgroundImageFit: normalized.backgroundImageFit,
     backgroundImageSize: normalized.backgroundImageSize
       ? JSON.parse(JSON.stringify(normalized.backgroundImageSize))
@@ -173,7 +175,7 @@ export function removeTemplatePage(template: DocTemplate, pageId: string): DocTe
 export function updateTemplatePage(
   template: DocTemplate,
   pageId: string,
-  patch: Partial<Pick<DocTemplatePage, 'kind' | 'root' | 'background' | 'backgroundType' | 'backgroundImage' | 'backgroundImageFit' | 'backgroundImageSize' | 'backgroundImagePosition'>>,
+  patch: Partial<Pick<DocTemplatePage, 'kind' | 'root' | 'background' | 'backgroundType' | 'backgroundImage' | 'backgroundImageField' | 'backgroundImageFit' | 'backgroundImageSize' | 'backgroundImagePosition'>>,
 ): DocTemplate {
   const pages = getTemplatePages(template).map((p) => (p.id === pageId ? { ...p, ...patch } : p));
   return syncTemplateRoots({ ...template, pages });
@@ -191,6 +193,7 @@ export function applyPageTemplate(
     background: instantiated.background,
     backgroundType: instantiated.backgroundType,
     backgroundImage: instantiated.backgroundImage,
+    backgroundImageField: instantiated.backgroundImageField,
     backgroundImageFit: instantiated.backgroundImageFit,
     backgroundImageSize: instantiated.backgroundImageSize,
     backgroundImagePosition: instantiated.backgroundImagePosition,
@@ -228,13 +231,14 @@ export function expandTemplateForPdf(
   const result: ExpandedPdfPage[] = [];
 
   for (const page of pages) {
-    const surface = resolvePageSurfaceBackground(page, template);
     if (page.kind === 'dynamic') {
       const ctxList = contexts.length ? contexts : [fallbackCtx];
       for (const ctx of ctxList) {
+        const surface = resolvePageSurfaceBackground(page, template, ctx);
         result.push({ root: page.root, ctx, surface });
       }
     } else {
+      const surface = resolvePageSurfaceBackground(page, template, fallbackCtx);
       result.push({ root: page.root, ctx: fallbackCtx, surface });
     }
   }

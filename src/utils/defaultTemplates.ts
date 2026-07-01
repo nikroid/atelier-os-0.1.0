@@ -110,7 +110,7 @@ function cataloguePageTemplate(): DocTemplate {
   return migrateTemplatePageSize({
     ...tpl,
     id: 'builtin_catalogue',
-    nom: 'Catalogue',
+    nom: 'Catalogue Cilas',
     createdAt: BUILTIN_TS,
     updatedAt: BUILTIN_TS,
   });

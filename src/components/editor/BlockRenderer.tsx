@@ -34,6 +34,7 @@ interface BlockRendererProps {
   ctx: TemplateContext;
   mode?: 'preview' | 'edit';
   selectedId?: string | null;
+  selectedIds?: string[];
   onSelect?: (id: string) => void;
   /** Clic sur la zone vide de la page (conteneur racine, profondeur 0). */
   onPageBackgroundClick?: () => void;
@@ -342,6 +343,7 @@ function textStyle(block: DocBlock, resolveCss: (family?: DocBlock['fontFamily']
     letterSpacing: block.textTransform === 'uppercase' ? '0.06em' : undefined,
     display: 'block',
     lineHeight: 1,
+    whiteSpace: 'pre-line',
     margin: 0,
   };
 }
@@ -368,6 +370,7 @@ export function BlockRenderer({
   ctx,
   mode = 'preview',
   selectedId,
+  selectedIds,
   onSelect,
   onPageBackgroundClick,
   onDrop,
@@ -375,7 +378,7 @@ export function BlockRenderer({
   parentLayout,
 }: BlockRendererProps) {
   const isEdit = mode === 'edit';
-  const isSelected = selectedId === block.id;
+  const isSelected = selectedIds?.includes(block.id) ?? selectedId === block.id;
   const { hover: dropHover, setHover: setDropHover } = useDropHover();
   const { resolveCss, ensureLoaded } = useFontsOptional();
 
@@ -425,7 +428,7 @@ export function BlockRenderer({
       alignItems: isEmpty && isEdit ? 'center' : (block.align ?? 'stretch'),
       justifyContent: isEmpty && isEdit ? 'center' : (block.justify ?? 'flex-start'),
       boxShadow: isEdit ? 'inset 0 0 0 1px rgba(0, 0, 0, 0.08)' : undefined,
-      ...surfaceBackgroundToCss(resolveBlockSurfaceBackground(block)),
+      ...surfaceBackgroundToCss(resolveBlockSurfaceBackground(block, ctx)),
       ...resolveContainerLayout(block, depth),
     };
     const containerDrag = createContainerDragHandlers(
@@ -457,6 +460,7 @@ export function BlockRenderer({
               ctx={ctx}
               mode={mode}
               selectedId={selectedId}
+              selectedIds={selectedIds}
               onSelect={onSelect}
               onPageBackgroundClick={onPageBackgroundClick}
               onDrop={onDrop}

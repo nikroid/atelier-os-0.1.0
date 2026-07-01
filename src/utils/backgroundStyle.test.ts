@@ -4,6 +4,7 @@ import {
   backgroundPositionToCss,
   backgroundSizeToCss,
   blockPatchFromBackgroundValue,
+  DEFAULT_IMAGE_SIZE,
   normalizeBackgroundImageFit,
   normalizeBackgroundImagePosition,
   pagePatchFromBackgroundValue,
@@ -172,5 +173,49 @@ describe('backgroundStyle', () => {
       backgroundColor: '#000',
     });
     expect(surface?.fillType).toBe('image');
+  });
+
+  it('resolves dynamic page background from context', () => {
+    const page: DocTemplatePage = {
+      id: 'p1',
+      kind: 'static',
+      root: emptyPageRoot(),
+      backgroundType: 'image',
+      backgroundImageField: 'work.image',
+      backgroundImageFit: 'cover',
+    };
+    const ctx = {
+      work: {
+        id: 'w1',
+        titre: 'Test',
+        annee: 2026,
+        technique: '',
+        dimensions: '',
+        prix: 0,
+        ref: '',
+        description: '',
+        statut: 'disponible' as const,
+        images: ['data:image/png;base64,work'],
+        artisteId: 'a1',
+        certificat: false,
+        createdAt: '',
+        updatedAt: '',
+      },
+    };
+    const css = surfaceBackgroundToCss(resolvePageSurfaceBackground(page, template, ctx));
+    expect(css.backgroundImage).toContain('data:image/png;base64,work');
+  });
+
+  it('maps dynamic background value patches', () => {
+    const patch = pagePatchFromBackgroundValue({
+      type: 'image',
+      color: '#fff',
+      imageField: 'artist.photo',
+      imageFit: 'cover',
+      imageSize: DEFAULT_IMAGE_SIZE,
+      imagePosition: { x: 50, xUnit: '%', y: 50, yUnit: '%' },
+    });
+    expect(patch.backgroundImageField).toBe('artist.photo');
+    expect(patch.backgroundImage).toBeUndefined();
   });
 });

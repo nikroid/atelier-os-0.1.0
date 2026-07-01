@@ -4,10 +4,12 @@ import {
   createBlockId,
   duplicateBlock,
   duplicateBlockAfter,
+  duplicateBlocksAt,
   findBlock,
   moveBlock,
   moveBlockToParent,
   removeBlock,
+  sortBlockIdsByDocumentOrder,
   updateBlock,
 } from './blockTree';
 import type { DocBlock } from '../types/templates';
@@ -93,6 +95,26 @@ describe('blockTree', () => {
     expect(siblings[2].type).toBe('text');
     expect(siblings[2].id).not.toBe('b');
     expect(siblings[2].content).toBe('B');
+  });
+
+  it('sortBlockIdsByDocumentOrder preserves tree order', () => {
+    const root = sampleRoot();
+    expect(sortBlockIdsByDocumentOrder(root, ['d', 'a', 'b'])).toEqual(['a', 'b', 'd']);
+  });
+
+  it('duplicateBlocksAt inserts clones without removing originals', () => {
+    const root = sampleRoot();
+    const { root: next, newIds } = duplicateBlocksAt(root, ['a', 'b'], 'c', 0);
+    expect(findBlock(root, 'a')).not.toBeNull();
+    expect(findBlock(root, 'b')).not.toBeNull();
+    expect(newIds).toHaveLength(2);
+    expect(findBlock(next, 'c')?.children?.map((child) => child.id)).toEqual([
+      newIds[0],
+      newIds[1],
+      'd',
+    ]);
+    expect(findBlock(next, newIds[0])?.content).toBe('A');
+    expect(findBlock(next, newIds[1])?.content).toBe('B');
   });
 });
 

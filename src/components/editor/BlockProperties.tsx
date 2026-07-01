@@ -4,7 +4,7 @@ import { FontFamilyPicker } from '../FontFamilyPicker';
 import type { DocBlock, ImageDropShadow } from '../../types/templates';
 import { FIELD_CATALOG, isImageField, type TemplateContext } from '../../utils/templateFields';
 import { fileToDataUrl } from '../../utils/helpers';
-import { resolveShortcodes, shortcodeTag, TEXT_SHORTCODE_FIELDS } from '../../utils/templateShortcodes';
+import { shortcodeTag, TEXT_SHORTCODE_FIELDS } from '../../utils/templateShortcodes';
 import { IconToggleGroup } from './IconToggleGroup';
 import { BackgroundControls } from './BackgroundControls';
 import { ColorFieldRow } from './ColorFieldRow';
@@ -578,11 +578,6 @@ export function BlockProperties({
     });
   };
 
-  const resolvedPreview =
-    block.type === 'text' && previewCtx && block.content
-      ? resolveShortcodes(block.content, previewCtx)
-      : null;
-
   return (
     <div className="block-properties">
       <p className="block-type-label">
@@ -630,11 +625,6 @@ export function BlockProperties({
               ))}
             </div>
           </div>
-          {resolvedPreview != null && resolvedPreview !== block.content && (
-            <p className="shortcode-preview">
-              <span className="hint">Aperçu :</span> {resolvedPreview}
-            </p>
-          )}
         </>
       )}
 
@@ -726,6 +716,7 @@ export function BlockProperties({
           )}
           <BackgroundControls
             label="Arrière-plan"
+            previewCtx={previewCtx}
             value={blockBackgroundValueFromBlock(block)}
             onChange={(value) => onChange(blockPatchFromBackgroundValue(value))}
             resetLabel="Transparent"
