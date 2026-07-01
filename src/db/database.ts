@@ -3,6 +3,11 @@ import type { Artist, Contact, Exhibition, Work } from '../types';
 import type { DocTemplate } from '../types/templates';
 import type { AppSettings } from '../types/settings';
 import type { MailTemplate, GmailAuth } from '../types/mail';
+import type { PageTemplate } from '../types/pageTemplates';
+import type { CustomFont } from '../types/customFonts';
+
+import type { CustomPageFormat } from '../types/customPageFormats';
+import type { SentMailLog } from '../types/sentMails';
 
 export class AtelierDatabase extends Dexie {
   artists!: Table<Artist, string>;
@@ -10,8 +15,12 @@ export class AtelierDatabase extends Dexie {
   contacts!: Table<Contact, string>;
   exhibitions!: Table<Exhibition, string>;
   templates!: Table<DocTemplate, string>;
+  pageTemplates!: Table<PageTemplate, string>;
+  customFonts!: Table<CustomFont, string>;
+  customPageFormats!: Table<CustomPageFormat, string>;
   mailTemplates!: Table<MailTemplate, string>;
   gmailAuth!: Table<GmailAuth, string>;
+  sentMails!: Table<SentMailLog, string>;
   settings!: Table<AppSettings, string>;
 
   constructor() {
@@ -54,6 +63,56 @@ export class AtelierDatabase extends Dexie {
       templates: 'id, nom, type, updatedAt',
       mailTemplates: 'id, nom, updatedAt',
       gmailAuth: 'id',
+      settings: 'id',
+    });
+    this.version(6).stores({
+      artists: 'id, nom, updatedAt',
+      works: 'id, ref, titre, artisteId, statut, annee, updatedAt',
+      contacts: 'id, nom, categorie, email, updatedAt',
+      exhibitions: 'id, titre, artisteId, date_debut, updatedAt',
+      templates: 'id, nom, type, updatedAt',
+      pageTemplates: 'id, nom, updatedAt',
+      mailTemplates: 'id, nom, updatedAt',
+      gmailAuth: 'id',
+      settings: 'id',
+    });
+    this.version(7).stores({
+      artists: 'id, nom, updatedAt',
+      works: 'id, ref, titre, artisteId, statut, annee, updatedAt',
+      contacts: 'id, nom, categorie, email, updatedAt',
+      exhibitions: 'id, titre, artisteId, date_debut, updatedAt',
+      templates: 'id, nom, type, updatedAt',
+      pageTemplates: 'id, nom, updatedAt',
+      customFonts: 'id, name, familyName, updatedAt',
+      mailTemplates: 'id, nom, updatedAt',
+      gmailAuth: 'id',
+      settings: 'id',
+    });
+    this.version(8).stores({
+      artists: 'id, nom, updatedAt',
+      works: 'id, ref, titre, artisteId, statut, annee, updatedAt',
+      contacts: 'id, nom, categorie, email, updatedAt',
+      exhibitions: 'id, titre, artisteId, date_debut, updatedAt',
+      templates: 'id, nom, type, updatedAt',
+      pageTemplates: 'id, nom, updatedAt',
+      customFonts: 'id, name, familyName, updatedAt',
+      customPageFormats: 'id, name, updatedAt',
+      mailTemplates: 'id, nom, updatedAt',
+      gmailAuth: 'id',
+      settings: 'id',
+    });
+    this.version(9).stores({
+      artists: 'id, nom, updatedAt',
+      works: 'id, ref, titre, artisteId, statut, annee, updatedAt',
+      contacts: 'id, nom, categorie, email, updatedAt',
+      exhibitions: 'id, titre, artisteId, date_debut, updatedAt',
+      templates: 'id, nom, type, updatedAt',
+      pageTemplates: 'id, nom, updatedAt',
+      customFonts: 'id, name, familyName, updatedAt',
+      customPageFormats: 'id, name, updatedAt',
+      mailTemplates: 'id, nom, updatedAt',
+      gmailAuth: 'id',
+      sentMails: 'id, sentAt',
       settings: 'id',
     });
   }

@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useSettings } from '../hooks/useSettings';
 import { MODE_LABELS } from '../types/settings';
 import { downloadBackup } from '../utils/backup';
-import { getVersionLabel, APP_BUILD_NUMBER, APP_BUILD_TIME } from '../version';
+import { getVersionLabel, APP_BUILD_TIME } from '../version';
 import { NavIcons, type NavIconKey } from './SidebarIcons';
 
 const MOBILE_BREAKPOINT = 900;
@@ -145,13 +145,12 @@ export function Layout() {
             <span className="nav-icon">{NavIcons.export}</span>
             <span className="nav-label">Exporter .artdb</span>
           </button>
-          <span
-            className="app-version sidebar-footer-meta"
-            title={`Build #${APP_BUILD_NUMBER} — ${APP_BUILD_TIME}`}
-          >
-            v{getVersionLabel()}
-          </span>
-          <span className="offline-badge sidebar-footer-meta">Hors ligne</span>
+          <div className="sidebar-footer-credits sidebar-footer-meta">
+            <span className="app-version" title={APP_BUILD_TIME}>
+              v{getVersionLabel()}
+            </span>
+            <span className="app-version">Powered by Subline Studio</span>
+          </div>
         </div>
       </aside>
 

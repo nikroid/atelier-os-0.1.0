@@ -1,56 +1,40 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import type { Plugin } from 'vite';
+import { bumpPatch, readPackageVersion, writePackageVersion } from './scripts/semver.mjs';
 
-const BUILD_INFO_PATH = resolve('build-info.json');
 const VIRTUAL_ID = 'virtual:atelier-build';
 const RESOLVED_ID = '\0' + VIRTUAL_ID;
+const PKG_PATH = resolve('package.json');
 
-interface BuildInfo {
-  buildNumber: number;
+interface VersionState {
+  version: string;
   builtAt: string;
 }
 
-function readBuildInfo(): BuildInfo {
-  if (!existsSync(BUILD_INFO_PATH)) {
-    return { buildNumber: 0, builtAt: new Date().toISOString() };
-  }
-  return JSON.parse(readFileSync(BUILD_INFO_PATH, 'utf-8')) as BuildInfo;
-}
-
-function bumpBuildInfo(): BuildInfo {
-  const prev = readBuildInfo();
-  const next: BuildInfo = {
-    buildNumber: prev.buildNumber + 1,
+function readVersionState(): VersionState {
+  return {
+    version: readPackageVersion(PKG_PATH),
     builtAt: new Date().toISOString(),
   };
-  writeFileSync(BUILD_INFO_PATH, `${JSON.stringify(next, null, 2)}\n`);
-  return next;
 }
 
-function readPackageMeta() {
-  const pkg = JSON.parse(readFileSync('package.json', 'utf-8')) as {
-    version: string;
-    config?: { codename?: string };
-  };
-  return {
-    version: pkg.version,
-    codename: pkg.config?.codename ?? 'dev',
-  };
+function bumpPatchInPackage(): VersionState {
+  const current = readPackageVersion(PKG_PATH);
+  const next = bumpPatch(current);
+  writePackageVersion(next, PKG_PATH);
+  return { version: next, builtAt: new Date().toISOString() };
 }
 
-function moduleSource(info: BuildInfo, meta: ReturnType<typeof readPackageMeta>): string {
+function moduleSource(state: VersionState): string {
   return [
-    `export const APP_VERSION = ${JSON.stringify(meta.version)};`,
-    `export const APP_CODENAME = ${JSON.stringify(meta.codename)};`,
-    `export const APP_BUILD_NUMBER = ${info.buildNumber};`,
-    `export const APP_BUILD_TIME = ${JSON.stringify(info.builtAt)};`,
+    `export const APP_VERSION = ${JSON.stringify(state.version)};`,
+    `export const APP_BUILD_TIME = ${JSON.stringify(state.builtAt)};`,
   ].join('\n');
 }
 
 export function atelierVersionPlugin(): Plugin {
-  let buildInfo = readBuildInfo();
-  let meta = readPackageMeta();
+  let state = readVersionState();
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   const reloadVirtualModule = (server: import('vite').ViteDevServer) => {
@@ -66,49 +50,41 @@ export function atelierVersionPlugin(): Plugin {
       if (id === VIRTUAL_ID) return RESOLVED_ID;
     },
     load(id) {
-      if (id === RESOLVED_ID) return moduleSource(buildInfo, meta);
+      if (id === RESOLVED_ID) return moduleSource(state);
     },
     buildStart() {
-      buildInfo = bumpBuildInfo();
-      meta = readPackageMeta();
+      state = readVersionState();
     },
     configureServer(server) {
-      buildInfo = bumpBuildInfo();
-      meta = readPackageMeta();
+      state = readVersionState();
 
       server.watcher.on('change', (file) => {
         if (!file.includes('/src/') && !file.includes('\\src\\')) return;
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          buildInfo = bumpBuildInfo();
-          meta = readPackageMeta();
+          state = bumpPatchInPackage();
           reloadVirtualModule(server);
         }, 600);
       });
     },
     transformIndexHtml(html) {
-      const label = `${meta.version} · ${meta.codename} · #${buildInfo.buildNumber}`;
       return html
         .replace(
           '<html lang="fr">',
-          `<html lang="fr" data-atelier-version="${meta.version}" data-atelier-build="${buildInfo.buildNumber}" data-atelier-built-at="${buildInfo.builtAt}">`,
+          `<html lang="fr" data-atelier-version="${state.version}" data-atelier-built-at="${state.builtAt}">`,
         )
         .replace(
           '</head>',
-          `    <meta name="atelier-os-version" content="${label}" />\n    <meta name="atelier-os-build" content="${buildInfo.builtAt}" />\n  </head>`,
+          `    <meta name="atelier-os-version" content="${state.version}" />\n    <meta name="atelier-os-build" content="${state.builtAt}" />\n  </head>`,
         );
     },
     writeBundle() {
-      const label = `${meta.version} · ${meta.codename} · #${buildInfo.buildNumber}`;
       writeFileSync(
         'dist/version.json',
         `${JSON.stringify(
           {
-            version: meta.version,
-            codename: meta.codename,
-            buildNumber: buildInfo.buildNumber,
-            label,
-            builtAt: buildInfo.builtAt,
+            version: state.version,
+            builtAt: state.builtAt,
           },
           null,
           2,
@@ -119,7 +95,7 @@ export function atelierVersionPlugin(): Plugin {
       if (existsSync(swPath)) {
         const sw = readFileSync(swPath, 'utf-8').replace(
           /const CACHE = '[^']+'/,
-          `const CACHE = 'atelier-os-v${meta.version}-b${buildInfo.buildNumber}'`,
+          `const CACHE = 'atelier-os-v${state.version}'`,
         );
         writeFileSync(swPath, sw);
       }
@@ -128,7 +104,7 @@ export function atelierVersionPlugin(): Plugin {
       if (id.endsWith('/public/sw.js') || id.endsWith('\\public\\sw.js')) {
         return code.replace(
           /const CACHE = '[^']+'/,
-          `const CACHE = 'atelier-os-v${meta.version}-b${buildInfo.buildNumber}'`,
+          `const CACHE = 'atelier-os-v${state.version}'`,
         );
       }
     },

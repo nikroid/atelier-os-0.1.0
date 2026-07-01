@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { PageTemplate } from '../types/pageTemplates';
 import type { DocTemplate } from '../types/templates';
 import {
   DEFAULT_EDITOR_TEMPLATE_ID,
@@ -8,12 +9,16 @@ import {
 import type { TemplateContext } from './templateFields';
 import { getPageBackground } from './backgroundStyle';
 import {
+  applyPageTemplate,
+  createPageTemplateFromPage,
   countExpandedPdfPages,
   emptyPageRoot,
   expandTemplateForPdf,
   getTemplatePages,
+  instantiatePageTemplate,
   insertTemplatePage,
   legacyPageId,
+  normalizePageTemplate,
   normalizeTemplate,
   reorderTemplatePages,
   removeTemplatePage,
@@ -129,6 +134,82 @@ describe('templatePages', () => {
   it('removeTemplatePage keeps at least one page', () => {
     const tpl = normalizeTemplate(sampleTemplate());
     expect(removeTemplatePage(tpl, tpl.pages![0].id)).toEqual(tpl);
+  });
+
+  it('normalizePageTemplate tags page-content root', () => {
+    const pageTemplate: PageTemplate = {
+      id: 'pagetpl_1',
+      nom: 'Page test',
+      kind: 'dynamic',
+      root: { id: 'root1', type: 'container', direction: 'column', children: [] },
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const normalized = normalizePageTemplate(pageTemplate);
+    expect(normalized.root.containerRole).toBe('page-content');
+  });
+
+  it('create and instantiate page template regenerate ids', () => {
+    const page = {
+      id: 'page_1',
+      kind: 'dynamic' as const,
+      root: {
+        id: 'root_1',
+        type: 'container' as const,
+        containerRole: 'page-content' as const,
+        direction: 'column' as const,
+        children: [{ id: 'child_1', type: 'text' as const, content: 'Hello' }],
+      },
+      background: '#abcdef',
+    };
+    const pageTemplate = createPageTemplateFromPage(page, 'Modele');
+    const instantiated = instantiatePageTemplate(pageTemplate);
+    expect(pageTemplate.id).not.toBe(instantiated.id);
+    expect(instantiated.root.id).not.toBe(page.root.id);
+    expect(instantiated.root.children?.[0].id).not.toBe(page.root.children?.[0].id);
+    expect(instantiated.kind).toBe('dynamic');
+    expect(instantiated.background).toBe('#abcdef');
+  });
+
+  it('applyPageTemplate replaces current page content and metadata', () => {
+    const tpl = normalizeTemplate(
+      sampleTemplate({
+        pages: [
+          {
+            id: 'p1',
+            kind: 'static',
+            root: {
+              id: 'old_root',
+              type: 'container',
+              containerRole: 'page-content',
+              direction: 'column',
+              children: [{ id: 'old_child', type: 'text', content: 'Old' }],
+            },
+          },
+        ],
+      }),
+    );
+    const pageTemplate: PageTemplate = {
+      id: 'pagetpl_1',
+      nom: 'Page dynamique',
+      kind: 'dynamic',
+      root: {
+        id: 'tpl_root',
+        type: 'container',
+        containerRole: 'page-content',
+        direction: 'column',
+        children: [{ id: 'tpl_child', type: 'text', content: 'New' }],
+      },
+      background: '#123456',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const next = applyPageTemplate(tpl, 'p1', pageTemplate);
+    expect(next.pages?.[0].id).toBe('p1');
+    expect(next.pages?.[0].kind).toBe('dynamic');
+    expect(next.pages?.[0].background).toBe('#123456');
+    expect(next.pages?.[0].root.id).not.toBe('tpl_root');
+    expect(next.pages?.[0].root.children?.[0].id).not.toBe('tpl_child');
   });
 });
 

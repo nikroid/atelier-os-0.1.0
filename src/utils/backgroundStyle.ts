@@ -18,7 +18,7 @@ export type {
   BackgroundPositionUnit,
 } from '../types/templates';
 
-export const DEFAULT_PAGE_BACKGROUND = '#f5f2ed';
+export const DEFAULT_PAGE_BACKGROUND = '#ffffff';
 
 const LEGACY_POSITION_MAP: Record<LegacyBackgroundImagePosition, BackgroundImagePosition> = {
   'top left': { x: 0, xUnit: '%', y: 0, yUnit: '%' },

@@ -10,6 +10,7 @@ import { contactFullName } from '../utils/helpers';
 import { ensureGmailAccessToken } from '../utils/gmailAuth';
 import { sendGmailMessage } from '../utils/gmailSend';
 import { attachmentsToMimeParts, type MailAttachmentDraft } from '../utils/mailAttachments';
+import { attachmentsToSentMailMeta, logSentMail } from '../utils/sentMailLog';
 import { ensureDefaultMailTemplates } from '../utils/mailTemplates';
 
 interface ContactGroupMailModalProps {
@@ -97,12 +98,23 @@ export function ContactGroupMailModal({
     try {
       const accessToken = await ensureGmailAccessToken();
       const mimeAttachments = attachments.length ? await attachmentsToMimeParts(attachments) : undefined;
-      await sendGmailMessage(accessToken, {
+      const messageId = await sendGmailMessage(accessToken, {
         subject: mailSubject,
         body: mailBody,
         to: isGroup ? undefined : emails,
         bcc: isGroup ? emails : undefined,
         attachments: mimeAttachments,
+      });
+      await logSentMail({
+        sentAt: now(),
+        subject: mailSubject,
+        body: mailBody,
+        recipientEmails: emails,
+        contactIds: recipients.map((c) => c.id),
+        isGroup,
+        mailTemplateId: selectedTemplateId || undefined,
+        gmailMessageId: messageId,
+        attachments: attachmentsToSentMailMeta(attachments),
       });
       onClose();
     } catch (err) {

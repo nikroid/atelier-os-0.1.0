@@ -3,6 +3,7 @@ import { useGmailAuth } from '../hooks/useGmailAuth';
 import { useSettings } from '../hooks/useSettings';
 import { MODE_LABELS } from '../types/settings';
 import { downloadBackup } from '../utils/backup';
+import { FontManagerSection } from '../components/FontManagerSection';
 
 export function SettingsPage() {
   const { settings, setMode } = useSettings();
@@ -134,6 +135,8 @@ export function SettingsPage() {
           Exporter .artdb
         </button>
       </section>
+
+      <FontManagerSection />
 
       <section className="card-section">
         <h2>Différences par mode</h2>

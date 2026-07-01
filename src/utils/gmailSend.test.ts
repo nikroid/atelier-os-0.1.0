@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildRawMime, mimeToBase64Url } from './gmailSend';
 
 describe('buildRawMime', () => {
@@ -72,5 +72,25 @@ describe('mimeToBase64Url', () => {
     expect(encoded).not.toContain('+');
     expect(encoded).not.toContain('/');
     expect(encoded).not.toMatch(/=$/);
+  });
+});
+
+describe('sendViaGmail', () => {
+  it('returns message id from Gmail API response', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ id: 'msg_abc123' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { sendViaGmail } = await import('./gmailSend');
+    const id = await sendViaGmail('token-test', 'MIME content');
+    expect(id).toBe('msg_abc123');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+      expect.objectContaining({ method: 'POST' }),
+    );
+
+    vi.unstubAllGlobals();
   });
 });

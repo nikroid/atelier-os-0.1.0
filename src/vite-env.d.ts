@@ -10,7 +10,5 @@ interface ImportMeta {
 
 declare module 'virtual:atelier-build' {
   export const APP_VERSION: string;
-  export const APP_CODENAME: string;
-  export const APP_BUILD_NUMBER: number;
   export const APP_BUILD_TIME: string;
 }

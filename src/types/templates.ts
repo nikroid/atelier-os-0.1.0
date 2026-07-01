@@ -41,6 +41,11 @@ export type DocTemplateType =
 
 export type PageFormat = 'a4' | 'a6' | 'a5';
 
+/** Référence du format dans le sélecteur (preset, custom enregistré, ou libre). */
+export type PageFormatRef = PageFormat | `custom:${string}` | 'free';
+
+export type PageOrientation = 'portrait' | 'landscape';
+
 export type FieldKey =
   | 'work.image'
   | 'work.titre'
@@ -72,7 +77,9 @@ export type JustifyContent =
   | 'space-evenly';
 export type SelfAlign = 'flex-start' | 'center' | 'flex-end';
 export type TextAlign = 'left' | 'center' | 'right';
-export type FontFamily = 'serif' | 'sans' | 'mono';
+export type BuiltinFontFamily = 'serif' | 'sans' | 'mono';
+/** Référence de police : classique, Google (`google:id`) ou importée (`custom:id`). */
+export type FontFamily = BuiltinFontFamily | `google:${string}` | `custom:${string}`;
 
 export interface ImageDropShadow {
   enabled?: boolean;
@@ -109,17 +116,18 @@ export interface DocBlock {
   children?: DocBlock[];
   field?: FieldKey;
   content?: string;
+  /** Taille en points typographiques (pt), pour l'impression. */
   fontSize?: number;
   fontFamily?: FontFamily;
   fontWeight?: 'normal' | 'bold';
   textAlign?: TextAlign;
   color?: string;
   writingMode?: 'horizontal-tb' | 'vertical-rl' | 'vertical-lr';
-  textTransform?: 'none' | 'uppercase';
+  textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';
   imageHeight?: string | number;
   imageWidth?: string | number;
   imageSrc?: string;
-  objectFit?: 'cover' | 'contain';
+  objectFit?: 'cover' | 'contain' | 'fill';
   /** Ombre portée (drop-shadow) autour de l'image */
   imageShadow?: ImageDropShadow;
   spacerHeight?: number;
@@ -153,7 +161,14 @@ export interface DocTemplate {
   id: string;
   nom: string;
   type: DocTemplateType;
+  /** @deprecated Utiliser formatRef + widthMm/heightMm — conservé pour compatibilité backup. */
   format: PageFormat;
+  /** Référence du format choisi dans le sélecteur. */
+  formatRef?: PageFormatRef;
+  /** Largeur effective du document en mm (orientée). */
+  widthMm?: number;
+  /** Hauteur effective du document en mm (orientée). */
+  heightMm?: number;
   margin: number;
   background: string;
   /** @deprecated Conservé pour compatibilité — utiliser `pages[0].root`. */

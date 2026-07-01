@@ -6,11 +6,18 @@ import { DropHoverProvider, useDropHover } from '../components/editor/DropHoverC
 import { EditorBlockTree } from '../components/editor/EditorBlockTree';
 import { EditorSidePanel, type EditorSideTab } from '../components/editor/EditorSidePanel';
 import { EditorToolbar } from '../components/editor/EditorToolbar';
-import { BlockRenderer, getPageDimensions } from '../components/editor/BlockRenderer';
+import { BlockRenderer } from '../components/editor/BlockRenderer';
+import { getTemplatePageDimensions } from '../utils/pageLayout';
 import { EditorCanvas } from '../components/editor/EditorCanvas';
 import { EditorPagePreviewList } from '../components/editor/EditorPagePreviewList';
 import { EditorPageSettings } from '../components/editor/EditorPageControls';
-import { EDITOR_PAGE_GAP, EDITOR_PAGE_TRAILING, editorGapAfterPage, EditorPagedCanvas } from '../components/editor/EditorPagedCanvas';
+import {
+  EDITOR_PAGE_GAP,
+  EDITOR_PAGE_GHOST_SPREAD,
+  EDITOR_PAGE_TRAILING,
+  editorGapAfterPage,
+  EditorPagedCanvas,
+} from '../components/editor/EditorPagedCanvas';
 import { TemplatePdfRender } from '../components/editor/TemplatePdfRender';
 import { Modal } from '../components/Modal';
 import { db, now, uid } from '../db/database';
@@ -19,12 +26,12 @@ import {
   useArtistMap,
   useArtists,
   useExhibitions,
+  usePageTemplates,
   useUserTemplates,
   useWorks,
 } from '../hooks/useDatabase';
 import { isBuiltinTemplate, resolveDefaultEditorTemplateId, resolveTemplate } from '../utils/templateCatalog';
 import type { DocBlock, DocTemplate, DocTemplatePage, FieldKey, PageKind } from '../types/templates';
-import { PAGE_FORMATS } from '../types/templates';
 import { useUndoHistory } from '../hooks/useUndoHistory';
 import {
   addChild,
@@ -43,11 +50,14 @@ import {
 } from '../utils/backgroundStyle';
 import {
   addTemplatePage,
+  applyPageTemplate,
+  createPageTemplateFromPage,
   createTemplatePage,
   defaultPageKindForTemplate,
   getTemplatePages,
   insertTemplatePage,
   normalizeTemplate,
+  normalizePageTemplate,
   reorderTemplatePages,
   removeTemplatePage,
   syncTemplateRoots,
@@ -55,6 +65,9 @@ import {
   updateTemplatePageRoot,
 } from '../utils/templatePages';
 import { generateTemplateDocument, getPdfRenderPixelSize } from '../utils/templatePdf';
+import { DEFAULT_PAGE_BACKGROUND } from '../utils/backgroundStyle';
+import { collectFontRefsFromRoot, collectFontRefsFromTemplate } from '../utils/fontRegistry';
+import { useFonts } from '../hooks/useFonts';
 import { pageContentCssVars } from '../utils/containerDimensions';
 
 const ZOOM_MIN = 30;
@@ -127,6 +140,7 @@ function EditorDropCanvas({
       >
         {pages.map((page, pageIndex) => {
           const isPageSelected = pageIndex === activePageIndex;
+          const isPageFocusSelected = isPageSelected && !selectedBlockId;
           const isActiveForEdit = isPageSelected && !isReadonly;
           const pageSurfaceCss = pageSurfaceToCss(page, { background: templateBackground });
 
@@ -151,7 +165,7 @@ function EditorDropCanvas({
                   </>
                 )}
                 <div
-                  className={`editor-template-page-slot${isPageSelected ? ' is-page-selected' : ''}`}
+                  className={`editor-template-page-slot${isPageFocusSelected ? ' is-page-selected' : ''}`}
                   style={{
                     width: pageW,
                     height: pageH,
@@ -210,14 +224,23 @@ function EditorDropCanvas({
 
         {!isReadonly && (
           <div className="editor-page-trailing" style={{ width: pageW }}>
-            <button
-              type="button"
-              className="editor-page-trailing-add"
-              title="Ajouter une page à la fin"
-              onClick={onAddPageAtEnd}
-            >
-              + Page
-            </button>
+            {pages[pages.length - 1]?.kind === 'dynamic' && (
+              <div
+                className="editor-page-gap-ghost-room"
+                style={{ height: EDITOR_PAGE_GHOST_SPREAD }}
+                aria-hidden
+              />
+            )}
+            <div className="editor-page-trailing-bar">
+              <button
+                type="button"
+                className="editor-page-trailing-add"
+                title="Ajouter une page à la fin"
+                onClick={onAddPageAtEnd}
+              >
+                + Page
+              </button>
+            </div>
           </div>
         )}
       </EditorPagedCanvas>
@@ -307,8 +330,11 @@ function newEmptyTemplate(): DocTemplate {
     nom: 'Nouveau modèle',
     type: 'custom',
     format: 'a4',
+    formatRef: 'a4',
+    widthMm: 210,
+    heightMm: 297,
     margin: 12,
-    background: '#f5f2ed',
+    background: DEFAULT_PAGE_BACKGROUND,
     root: page.root,
     pages: [page],
     createdAt: ts,
@@ -319,10 +345,12 @@ function newEmptyTemplate(): DocTemplate {
 export function EditorPage() {
   const allTemplates = useAllTemplates();
   const userTemplates = useUserTemplates();
+  const pageTemplates = usePageTemplates();
   const works = useWorks();
   const artists = useArtists();
   const exhibitions = useExhibitions();
   const artistMap = useArtistMap(artists);
+  const { ensureLoaded } = useFonts();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -331,6 +359,10 @@ export function EditorPage() {
   const [previewExpoId, setPreviewExpoId] = useState('');
   const [saved, setSaved] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [savePageTemplateOpen, setSavePageTemplateOpen] = useState(false);
+  const [savePageTemplateName, setSavePageTemplateName] = useState('');
+  const [loadPageTemplateOpen, setLoadPageTemplateOpen] = useState(false);
+  const [selectedPageTemplateId, setSelectedPageTemplateId] = useState('');
   const [zoom, setZoom] = useState(ZOOM_DEFAULT);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [pdfRender, setPdfRender] = useState<{
@@ -365,6 +397,17 @@ export function EditorPage() {
       setSaved(true);
     }
   }, [activeId, userTemplates]);
+
+  useEffect(() => {
+    if (!savePageTemplateOpen) {
+      setSavePageTemplateName('');
+    }
+  }, [savePageTemplateOpen]);
+
+  useEffect(() => {
+    if (!loadPageTemplateOpen) return;
+    setSelectedPageTemplateId((current) => current || pageTemplates?.[0]?.id || '');
+  }, [loadPageTemplateOpen, pageTemplates]);
 
   const previewCtx = useMemo((): TemplateContext => {
     const work = works?.find((w) => w.id === previewWorkId) ?? works?.[0];
@@ -474,6 +517,7 @@ export function EditorPage() {
     if (!draft) return;
     setPdfLoading(true);
     try {
+      await ensureLoaded(collectFontRefsFromTemplate(draft));
       await generateTemplateDocument(
         draft,
         [previewCtx],
@@ -490,6 +534,7 @@ export function EditorPage() {
               pageSurface: page.surface,
             }),
           );
+          if (page.root) await ensureLoaded(collectFontRefsFromRoot(page.root));
         },
       );
     } catch (err) {
@@ -561,6 +606,35 @@ export function EditorPage() {
     },
     [commitDraft, activePage],
   );
+
+  const openSavePageTemplate = useCallback(() => {
+    if (!activePage || isReadonly) return;
+    setSavePageTemplateName(activePageIndex >= 0 ? `Page ${activePageIndex + 1}` : '');
+    setSavePageTemplateOpen(true);
+  }, [activePage, activePageIndex, isReadonly]);
+
+  const confirmSavePageTemplate = useCallback(async () => {
+    if (!activePage || isReadonly) return;
+    const nom = savePageTemplateName.trim();
+    if (!nom) return;
+    await db.pageTemplates.add(createPageTemplateFromPage(activePage, nom));
+    setSavePageTemplateOpen(false);
+  }, [activePage, isReadonly, savePageTemplateName]);
+
+  const openLoadPageTemplate = useCallback(() => {
+    if (!activePage || isReadonly) return;
+    setSelectedPageTemplateId(pageTemplates?.[0]?.id ?? '');
+    setLoadPageTemplateOpen(true);
+  }, [activePage, isReadonly, pageTemplates]);
+
+  const confirmLoadPageTemplate = useCallback(() => {
+    if (!activePage || !selectedPageTemplateId) return;
+    const pageTemplate = pageTemplates?.find((tpl) => tpl.id === selectedPageTemplateId);
+    if (!pageTemplate) return;
+    commitDraft((t) => applyPageTemplate(t, activePage.id, normalizePageTemplate(pageTemplate)));
+    setSelectedBlockId(null);
+    setLoadPageTemplateOpen(false);
+  }, [activePage, commitDraft, pageTemplates, selectedPageTemplateId]);
 
   const handleReorderPages = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -650,8 +724,8 @@ export function EditorPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [isReadonly, handleBlockDelete, handleBlockDuplicate, handleUndo, handleRedo]);
 
-  const pageDims = draft ? getPageDimensions(draft.format) : { w: 210, h: 297 };
-  const printSize = draft ? getPdfRenderPixelSize(draft.format, draft.margin) : null;
+  const pageDims = draft ? getTemplatePageDimensions(draft) : { w: 210, h: 297, label: 'A4' };
+  const printSize = draft ? getPdfRenderPixelSize(draft) : null;
   const pageW = printSize?.widthPx ?? pageDims.w * 3.78;
   const pageH = printSize?.pageHeightPx ?? pageDims.h * 3.78;
   const marginPx = printSize?.marginPx ?? (draft?.margin ?? 12) * 3.78;
@@ -670,7 +744,7 @@ export function EditorPage() {
     fitZoomToScreen();
     window.addEventListener('resize', fitZoomToScreen);
     return () => window.removeEventListener('resize', fitZoomToScreen);
-  }, [pageW, draft?.format]);
+  }, [pageW, draft?.widthMm, draft?.heightMm]);
 
   return (
     <div className="editor-page">
@@ -712,6 +786,88 @@ export function EditorPage() {
           </div>
         </Modal>
 
+        <Modal
+          open={savePageTemplateOpen}
+          title="Enregistrer un modèle de page"
+          onClose={() => setSavePageTemplateOpen(false)}
+        >
+          <div className="form-row form-row-dense">
+            <label className="editor-toolbar-field-grow">
+              Nom du modèle de page
+              <input
+                value={savePageTemplateName}
+                onChange={(e) => setSavePageTemplateName(e.target.value)}
+                placeholder="Ex. Fiche oeuvre portrait"
+                autoFocus
+              />
+            </label>
+          </div>
+          <div className="btn-row" style={{ marginTop: '1rem' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setSavePageTemplateOpen(false)}>
+              Annuler
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!savePageTemplateName.trim()}
+              onClick={() => void confirmSavePageTemplate()}
+            >
+              Enregistrer
+            </button>
+          </div>
+        </Modal>
+
+        <Modal
+          open={loadPageTemplateOpen}
+          title="Charger un modèle de page"
+          onClose={() => setLoadPageTemplateOpen(false)}
+        >
+          {pageTemplates?.length ? (
+            <>
+              <div className="form-row form-row-dense">
+                <label className="editor-toolbar-field-grow">
+                  Modèle de page
+                  <select
+                    value={selectedPageTemplateId}
+                    onChange={(e) => setSelectedPageTemplateId(e.target.value)}
+                  >
+                    {pageTemplates.map((tpl) => (
+                      <option key={tpl.id} value={tpl.id}>
+                        {tpl.nom}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="hint" style={{ marginTop: '0.75rem' }}>
+                Le chargement remplace complètement la page courante, y compris son type, son fond et son contenu.
+              </p>
+              <div className="btn-row" style={{ marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setLoadPageTemplateOpen(false)}>
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!selectedPageTemplateId}
+                  onClick={confirmLoadPageTemplate}
+                >
+                  Charger
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>Aucun modèle de page enregistré pour le moment.</p>
+              <div className="btn-row" style={{ marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setLoadPageTemplateOpen(false)}>
+                  Fermer
+                </button>
+              </div>
+            </>
+          )}
+        </Modal>
+
         {isReadonly && draft && (
           <div className="template-readonly-banner template-readonly-banner-compact">
             <strong>Modèle par défaut</strong> — lecture seule. Créez une copie pour personnaliser.
@@ -732,7 +888,7 @@ export function EditorPage() {
             <div className="editor-canvas-wrap">
               <div className="editor-canvas-header editor-canvas-header-slim">
                 <span className="editor-canvas-title">
-                  {PAGE_FORMATS.find((f) => f.value === draft.format)?.label ?? 'A4'}
+                  {pageDims.label}
                   {draft.margin > 0 && ` · ${draft.margin} mm`}
                 </span>
                 <div className="editor-canvas-zoom">
@@ -838,9 +994,11 @@ export function EditorPage() {
                       page={activePage}
                       pageIndex={activePageIndex}
                       pageCount={templatePages.length}
-                      templateBackground={draft?.background ?? '#f5f2ed'}
+                      templateBackground={draft?.background ?? DEFAULT_PAGE_BACKGROUND}
                       onKindChange={handlePageKindChange}
                       onBackgroundPatch={handlePageBackgroundPatch}
+                      onSaveAsPageTemplate={openSavePageTemplate}
+                      onLoadPageTemplate={openLoadPageTemplate}
                       onRemove={() => handleRemovePage(activePage.id)}
                     />
                   )}
@@ -866,9 +1024,11 @@ export function EditorPage() {
                         page={activePage}
                         pageIndex={activePageIndex}
                         pageCount={templatePages.length}
-                        templateBackground={draft?.background ?? '#f5f2ed'}
+                        templateBackground={draft?.background ?? DEFAULT_PAGE_BACKGROUND}
                         onKindChange={handlePageKindChange}
                         onBackgroundPatch={handlePageBackgroundPatch}
+                        onSaveAsPageTemplate={openSavePageTemplate}
+                        onLoadPageTemplate={openLoadPageTemplate}
                         onRemove={() => handleRemovePage(activePage.id)}
                       />
                     )}

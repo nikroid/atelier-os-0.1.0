@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { FONT_FAMILIES, FONT_SIZE_PRESETS } from '../../utils/fonts';
+import { DEFAULT_FONT_SIZE_PT, FONT_SIZE_PT_MIN, FONT_SIZE_PT_MAX, parseFontSizePt } from '../../utils/fonts';
+import { FontFamilyPicker } from '../FontFamilyPicker';
 import type { DocBlock, ImageDropShadow } from '../../types/templates';
 import { FIELD_CATALOG, isImageField, type TemplateContext } from '../../utils/templateFields';
 import { fileToDataUrl } from '../../utils/helpers';
@@ -18,6 +19,7 @@ import {
 import { flexAxis } from '../../utils/flexDirection';
 import {
   DEFAULT_IMAGE_DROP_SHADOW,
+  IMAGE_OBJECT_FIT_OPTIONS,
   imageObjectFitApplies,
   normalizeImageDropShadow,
 } from '../../utils/imageBlockLayout';
@@ -204,17 +206,20 @@ function ImageObjectFitField({
   block: DocBlock;
   onChange: (patch: Partial<DocBlock>) => void;
 }) {
-  if (!imageObjectFitApplies(block.imageHeight)) return null;
+  if (!imageObjectFitApplies(block.imageWidth, block.imageHeight)) return null;
 
   return (
     <label>
       Ajustement
       <select
         value={block.objectFit ?? 'cover'}
-        onChange={(e) => onChange({ objectFit: e.target.value as 'cover' | 'contain' })}
+        onChange={(e) => onChange({ objectFit: e.target.value as DocBlock['objectFit'] })}
       >
-        <option value="cover">Couvrir</option>
-        <option value="contain">Contenir</option>
+        {IMAGE_OBJECT_FIT_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
       </select>
     </label>
   );
@@ -348,6 +353,43 @@ interface BlockPropertiesProps {
   onDuplicate?: () => void;
 }
 
+function CaseToggleGroup({
+  value,
+  onChange,
+}: {
+  value: DocBlock['textTransform'];
+  onChange: (patch: Partial<DocBlock>) => void;
+}) {
+  const active = value && value !== 'none' ? value : null;
+  const options = [
+    { value: 'capitalize' as const, label: 'Aa', title: 'Initiales majuscules' },
+    { value: 'uppercase' as const, label: 'AA', title: 'Tout en majuscules' },
+    { value: 'lowercase' as const, label: 'aa', title: 'Tout en minuscules' },
+  ];
+
+  return (
+    <div className="icon-toggle-field icon-toggle-field-compact">
+      <span className="editor-compact-label">Casse</span>
+      <div className="icon-toggle-group" role="group" aria-label="Casse">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`icon-toggle-btn${active === opt.value ? ' active' : ''}`}
+            title={opt.title}
+            aria-pressed={active === opt.value}
+            onClick={() =>
+              onChange({ textTransform: active === opt.value ? undefined : opt.value })
+            }
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FontControls({
   block,
   onChange,
@@ -357,41 +399,20 @@ function FontControls({
 }) {
   return (
     <>
-      <label>
-        Police
-        <select
-          value={block.fontFamily ?? 'serif'}
-          onChange={(e) => onChange({ fontFamily: e.target.value as DocBlock['fontFamily'] })}
-        >
-          {FONT_FAMILIES.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Taille prédéfinie
-        <select
-          value={block.fontSize ?? 11}
-          onChange={(e) => onChange({ fontSize: parseInt(e.target.value) })}
-        >
-          {FONT_SIZE_PRESETS.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label} ({p.value}px)
-            </option>
-          ))}
-        </select>
-      </label>
+      <FontFamilyPicker
+        value={block.fontFamily}
+        onChange={(fontFamily) => onChange({ fontFamily })}
+      />
       <div className="form-row form-row-dense">
         <label>
-          <span className="editor-compact-label">Taille (px)</span>
+          <span className="editor-compact-label">Taille (pt)</span>
           <input
             type="number"
-            min={6}
-            max={72}
-            value={block.fontSize ?? 11}
-            onChange={(e) => onChange({ fontSize: parseInt(e.target.value) || 11 })}
+            min={FONT_SIZE_PT_MIN}
+            max={FONT_SIZE_PT_MAX}
+            step={0.5}
+            value={block.fontSize ?? DEFAULT_FONT_SIZE_PT}
+            onChange={(e) => onChange({ fontSize: parseFontSizePt(e.target.value) })}
           />
         </label>
         <IconToggleGroup
@@ -438,16 +459,7 @@ function FontControls({
             { value: 'vertical-lr', label: '↑', title: 'Vertical inversé' },
           ]}
         />
-        <IconToggleGroup
-          label="Casse"
-          compact
-          value={block.textTransform ?? 'none'}
-          onChange={(textTransform) => onChange({ textTransform })}
-          options={[
-            { value: 'none', label: 'Aa', title: 'Normal' },
-            { value: 'uppercase', label: 'AA', title: 'Majuscules' },
-          ]}
-        />
+        <CaseToggleGroup value={block.textTransform} onChange={onChange} />
       </div>
     </>
   );

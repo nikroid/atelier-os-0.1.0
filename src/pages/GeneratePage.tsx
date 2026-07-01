@@ -12,11 +12,14 @@ import {
   useWorks,
 } from '../hooks/useDatabase';
 import { isBuiltinTemplate } from '../utils/templateCatalog';
+import { getTemplatePageDimensions } from '../utils/pageLayout';
 import type { DocBlock, DocTemplate } from '../types/templates';
 import type { Work } from '../types';
 import { generateTemplateDocument } from '../utils/templatePdf';
 import { countExpandedPdfPages } from '../utils/templatePages';
 import type { TemplateContext } from '../utils/templateFields';
+import { useFonts } from '../hooks/useFonts';
+import { collectFontRefsFromRoot, collectFontRefsFromTemplate } from '../utils/fontRegistry';
 
 export function GeneratePage() {
   const works = useWorks();
@@ -24,6 +27,7 @@ export function GeneratePage() {
   const exhibitions = useExhibitions();
   const templates = useAllTemplates();
   const artistMap = useArtistMap(artists);
+  const { ensureLoaded } = useFonts();
   const [selectedWorks, setSelectedWorks] = useState<Set<string>>(new Set());
   const [selectedExpo, setSelectedExpo] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -74,6 +78,7 @@ export function GeneratePage() {
         pageSurface: page.surface,
       }),
     );
+    if (page.root) await ensureLoaded(collectFontRefsFromRoot(page.root));
   };
 
   const generateWithTemplate = async () => {
@@ -102,6 +107,7 @@ export function GeneratePage() {
         exhibition: expo,
       }));
 
+      await ensureLoaded(collectFontRefsFromTemplate(tpl));
       await generateTemplateDocument(
         tpl,
         contexts,
@@ -134,6 +140,7 @@ export function GeneratePage() {
         artist,
         exhibition: expo,
       }));
+      await ensureLoaded(collectFontRefsFromTemplate(tpl));
       await generateTemplateDocument(
         tpl,
         contexts,
@@ -157,6 +164,7 @@ export function GeneratePage() {
     const ctx: TemplateContext = { work, artist, exhibition: expo };
 
     await run('Presse', async () => {
+      await ensureLoaded(collectFontRefsFromTemplate(tpl));
       await generateTemplateDocument(
         tpl,
         [ctx],
@@ -197,7 +205,7 @@ export function GeneratePage() {
               <optgroup label="Par défaut">
                 {allTemplatesList.filter((t) => isBuiltinTemplate(t)).map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.nom} — {t.format.toUpperCase()}
+                    {t.nom} — {getTemplatePageDimensions(t).label}
                   </option>
                 ))}
               </optgroup>
@@ -205,7 +213,7 @@ export function GeneratePage() {
                 <optgroup label="Personnalisés">
                   {customTemplates.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.nom} — {t.format.toUpperCase()}
+                      {t.nom} — {getTemplatePageDimensions(t).label}
                     </option>
                   ))}
                 </optgroup>

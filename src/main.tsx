@@ -5,27 +5,16 @@ import { seedDemoData } from './utils/backup';
 import { cleanupBuiltinTemplatesFromDb } from './utils/defaultTemplates';
 import { db } from './db/database';
 import { ensureDefaultSettings } from './hooks/useSettings';
-import {
-  APP_BUILD_NUMBER,
-  APP_BUILD_TIME,
-  APP_CODENAME,
-  APP_VERSION,
-  getVersionFull,
-  getVersionLabel,
-} from './version';
+import { APP_BUILD_TIME, APP_VERSION, getVersionFull, getVersionLabel } from './version';
 import './index.css';
 
 document.documentElement.dataset.atelierVersion = APP_VERSION;
-document.documentElement.dataset.atelierCodename = APP_CODENAME;
-document.documentElement.dataset.atelierBuild = String(APP_BUILD_NUMBER);
 document.documentElement.dataset.atelierBuiltAt = APP_BUILD_TIME;
 
 Object.assign(window, {
   __ATELIER_OS__: {
     version: APP_VERSION,
-    codename: APP_CODENAME,
-    buildNumber: APP_BUILD_NUMBER,
-    build: APP_BUILD_TIME,
+    builtAt: APP_BUILD_TIME,
     label: getVersionLabel(),
   },
 });

@@ -114,7 +114,7 @@ export function mimeToBase64Url(mime: string): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export async function sendViaGmail(accessToken: string, mime: string): Promise<void> {
+export async function sendViaGmail(accessToken: string, mime: string): Promise<string> {
   const raw = mimeToBase64Url(mime);
   const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
@@ -131,6 +131,12 @@ export async function sendViaGmail(accessToken: string, mime: string): Promise<v
     };
     throw enrichGmailApiError(payload.error?.message ?? `Gmail API erreur ${res.status}`);
   }
+
+  const payload = (await res.json()) as { id?: string };
+  if (!payload.id) {
+    throw new Error('Gmail API : identifiant de message manquant dans la réponse.');
+  }
+  return payload.id;
 }
 
 function enrichGmailApiError(message: string): Error {
@@ -145,7 +151,7 @@ function enrichGmailApiError(message: string): Error {
 export async function sendGmailMessage(
   accessToken: string,
   options: GmailMimeOptions,
-): Promise<void> {
+): Promise<string> {
   const mime = buildRawMime(options);
-  await sendViaGmail(accessToken, mime);
+  return sendViaGmail(accessToken, mime);
 }

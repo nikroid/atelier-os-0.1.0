@@ -22,7 +22,7 @@ interface TemplatePdfRenderProps {
 
 /** Conteneur hors écran à largeur d'impression fixe — ne doit pas hériter du responsive. */
 export function TemplatePdfRender({ template, ctx, root, pageSurface }: TemplatePdfRenderProps) {
-  const pdfSize = getPdfRenderPixelSize(template.format, template.margin);
+  const pdfSize = getPdfRenderPixelSize(template);
   const pages = getTemplatePages(template);
   const block = root ?? pages[0]?.root ?? template.root;
   const surface =

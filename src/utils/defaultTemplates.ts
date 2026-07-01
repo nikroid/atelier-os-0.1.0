@@ -1,10 +1,16 @@
 import type { DocTemplate } from '../types/templates';
 import { createBlockId } from './blockTree';
 import { defaultPageKindForTemplate, legacyPageId } from './templatePages';
+import { migrateTemplatePageSize } from './pageLayout';
+import catalogueJson from '../data/builtin-catalogue.json';
 
 const BUILTIN_TS = '2020-01-01T00:00:00.000Z';
 
 function withBuiltinPages(tpl: DocTemplate): DocTemplate {
+  if (tpl.pages?.length) {
+    const root = tpl.pages[0]?.root ?? tpl.root;
+    return { ...tpl, root };
+  }
   const page = {
     id: legacyPageId(tpl.id),
     kind: defaultPageKindForTemplate(tpl.type),
@@ -100,175 +106,14 @@ function ficheTemplate(): DocTemplate {
 }
 
 function cataloguePageTemplate(): DocTemplate {
-  const accent = '#B22C2C';
-  return {
+  const tpl = JSON.parse(JSON.stringify(catalogueJson)) as DocTemplate;
+  return migrateTemplatePageSize({
+    ...tpl,
     id: 'builtin_catalogue',
     nom: 'Catalogue',
-    type: 'catalogue_page',
-    format: 'a4',
-    margin: 20,
-    background: '#ffffff',
-    root: {
-      id: createBlockId(),
-      type: 'container',
-      direction: 'column',
-      gap: 0,
-      align: 'stretch',
-      padding: 8,
-      children: [
-        {
-          id: createBlockId(),
-          type: 'container',
-          direction: 'row',
-          gap: 0,
-          align: 'stretch',
-          children: [
-            {
-              id: createBlockId(),
-              type: 'container',
-              direction: 'column',
-              gap: 5,
-              align: 'center',
-              flex: 1,
-              padding: 12,
-              children: [
-                {
-                  id: createBlockId(),
-                  type: 'field',
-                  field: 'work.image',
-                  imageHeight: 360,
-                  objectFit: 'contain',
-                  blockPadding: 4,
-                },
-                { id: createBlockId(), type: 'spacer', spacerHeight: 10 },
-                {
-                  id: createBlockId(),
-                  type: 'field',
-                  field: 'artist.nom',
-                  fontSize: 13,
-                  fontWeight: 'bold',
-                  fontFamily: 'sans',
-                  textAlign: 'center',
-                  textTransform: 'uppercase',
-                  color: accent,
-                },
-                {
-                  id: createBlockId(),
-                  type: 'field',
-                  field: 'work.titre',
-                  fontSize: 13,
-                  fontWeight: 'bold',
-                  fontFamily: 'sans',
-                  textAlign: 'center',
-                },
-                {
-                  id: createBlockId(),
-                  type: 'rectangle',
-                  rectHeight: 2,
-                  width: '52px',
-                  selfAlign: 'center',
-                  backgroundColor: accent,
-                  borderWidth: 0,
-                },
-                {
-                  id: createBlockId(),
-                  type: 'field',
-                  field: 'work.technique',
-                  fontSize: 11,
-                  fontFamily: 'sans',
-                  textAlign: 'center',
-                },
-                {
-                  id: createBlockId(),
-                  type: 'container',
-                  direction: 'row',
-                  gap: 4,
-                  align: 'center',
-                  children: [
-                    {
-                      id: createBlockId(),
-                      type: 'text',
-                      content: 'Dimensions :',
-                      fontSize: 11,
-                      fontFamily: 'sans',
-                      textAlign: 'center',
-                    },
-                    {
-                      id: createBlockId(),
-                      type: 'field',
-                      field: 'work.dimensions',
-                      fontSize: 11,
-                      fontFamily: 'sans',
-                      textAlign: 'center',
-                    },
-                  ],
-                },
-                {
-                  id: createBlockId(),
-                  type: 'container',
-                  direction: 'row',
-                  gap: 4,
-                  align: 'center',
-                  children: [
-                    {
-                      id: createBlockId(),
-                      type: 'text',
-                      content: 'Année :',
-                      fontSize: 11,
-                      fontFamily: 'sans',
-                      textAlign: 'center',
-                    },
-                    {
-                      id: createBlockId(),
-                      type: 'field',
-                      field: 'work.annee',
-                      fontSize: 11,
-                      fontFamily: 'sans',
-                      textAlign: 'center',
-                    },
-                  ],
-                },
-                {
-                  id: createBlockId(),
-                  type: 'field',
-                  field: 'work.prix',
-                  fontSize: 11,
-                  fontWeight: 'bold',
-                  fontFamily: 'sans',
-                  textAlign: 'center',
-                },
-              ],
-            },
-            {
-              id: createBlockId(),
-              type: 'container',
-              direction: 'column',
-              align: 'center',
-              width: '32px',
-              padding: 8,
-              blockPadding: 0,
-              children: [
-                { id: createBlockId(), type: 'spacer', spacerHeight: 280 },
-                {
-                  id: createBlockId(),
-                  type: 'field',
-                  field: 'expo.titre',
-                  fontSize: 8.5,
-                  fontWeight: 'bold',
-                  fontFamily: 'sans',
-                  textTransform: 'uppercase',
-                  color: accent,
-                  writingMode: 'vertical-rl',
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
     createdAt: BUILTIN_TS,
     updatedAt: BUILTIN_TS,
-  };
+  });
 }
 
 function certificatTemplate(): DocTemplate {
@@ -369,7 +214,7 @@ function presseTemplate(): DocTemplate {
 export const DEFAULT_TEMPLATES: DocTemplate[] = [
   withBuiltinPages(cartelTemplate()),
   withBuiltinPages(ficheTemplate()),
-  withBuiltinPages(cataloguePageTemplate()),
+  cataloguePageTemplate(),
   withBuiltinPages(certificatTemplate()),
   withBuiltinPages(presseTemplate()),
 ];

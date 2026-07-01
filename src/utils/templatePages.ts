@@ -1,11 +1,13 @@
-import { uid } from '../db/database';
+import { now, uid } from '../db/database';
 import type { DocBlock, DocTemplate, DocTemplatePage, PageKind } from '../types/templates';
-import { createBlockId } from './blockTree';
+import type { PageTemplate } from '../types/pageTemplates';
+import { createBlockId, duplicateBlock } from './blockTree';
 import type { TemplateContext } from './templateFields';
 import {
   resolvePageSurfaceBackground,
   type SurfaceBackground,
 } from './backgroundStyle';
+import { migrateTemplatePageSize } from './pageLayout';
 
 export function emptyPageRoot(): DocBlock {
   return {
@@ -41,6 +43,54 @@ function tagPageContentRoot(root: DocBlock): DocBlock {
   return { ...root, containerRole: 'page-content' };
 }
 
+export function normalizePageTemplate(pageTemplate: PageTemplate): PageTemplate {
+  return {
+    ...pageTemplate,
+    root: tagPageContentRoot(pageTemplate.root),
+  };
+}
+
+export function createPageTemplateFromPage(page: DocTemplatePage, nom: string): PageTemplate {
+  const ts = now();
+  return normalizePageTemplate({
+    id: uid('pagetpl'),
+    nom,
+    kind: page.kind,
+    root: duplicateBlock(page.root),
+    background: page.background,
+    backgroundType: page.backgroundType,
+    backgroundImage: page.backgroundImage,
+    backgroundImageFit: page.backgroundImageFit,
+    backgroundImageSize: page.backgroundImageSize
+      ? JSON.parse(JSON.stringify(page.backgroundImageSize))
+      : undefined,
+    backgroundImagePosition: page.backgroundImagePosition
+      ? JSON.parse(JSON.stringify(page.backgroundImagePosition))
+      : undefined,
+    createdAt: ts,
+    updatedAt: ts,
+  });
+}
+
+export function instantiatePageTemplate(pageTemplate: PageTemplate): DocTemplatePage {
+  const normalized = normalizePageTemplate(pageTemplate);
+  return {
+    id: uid('page'),
+    kind: normalized.kind,
+    root: duplicateBlock(normalized.root),
+    background: normalized.background,
+    backgroundType: normalized.backgroundType,
+    backgroundImage: normalized.backgroundImage,
+    backgroundImageFit: normalized.backgroundImageFit,
+    backgroundImageSize: normalized.backgroundImageSize
+      ? JSON.parse(JSON.stringify(normalized.backgroundImageSize))
+      : undefined,
+    backgroundImagePosition: normalized.backgroundImagePosition
+      ? JSON.parse(JSON.stringify(normalized.backgroundImagePosition))
+      : undefined,
+  };
+}
+
 export function legacyPageId(templateId: string, index = 0): string {
   return `${templateId}_page_${index}`;
 }
@@ -58,14 +108,15 @@ export function getTemplatePages(template: DocTemplate): DocTemplatePage[] {
 }
 
 export function normalizeTemplate(template: DocTemplate): DocTemplate {
-  const pages = getTemplatePages(template).map((p) => ({
+  const withSize = migrateTemplatePageSize(template);
+  const pages = getTemplatePages(withSize).map((p) => ({
     ...p,
     root: tagPageContentRoot(p.root),
   }));
   return {
-    ...template,
+    ...withSize,
     pages,
-    root: pages[0]?.root ?? template.root,
+    root: pages[0]?.root ?? withSize.root,
   };
 }
 
@@ -126,6 +177,24 @@ export function updateTemplatePage(
 ): DocTemplate {
   const pages = getTemplatePages(template).map((p) => (p.id === pageId ? { ...p, ...patch } : p));
   return syncTemplateRoots({ ...template, pages });
+}
+
+export function applyPageTemplate(
+  template: DocTemplate,
+  pageId: string,
+  pageTemplate: PageTemplate,
+): DocTemplate {
+  const instantiated = instantiatePageTemplate(pageTemplate);
+  return updateTemplatePage(template, pageId, {
+    kind: instantiated.kind,
+    root: instantiated.root,
+    background: instantiated.background,
+    backgroundType: instantiated.backgroundType,
+    backgroundImage: instantiated.backgroundImage,
+    backgroundImageFit: instantiated.backgroundImageFit,
+    backgroundImageSize: instantiated.backgroundImageSize,
+    backgroundImagePosition: instantiated.backgroundImagePosition,
+  });
 }
 
 export function updateTemplatePageRoot(

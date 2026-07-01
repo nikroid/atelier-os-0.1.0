@@ -4,10 +4,20 @@ import { pageContentCssVars } from '../../utils/containerDimensions';
 
 /** Espace vertical entre deux pages dans l'éditeur (px, avant zoom). */
 export const EDITOR_PAGE_GAP = 48;
+/** Décalage réel du dernier clone visible d'une page dynamique (px, avant zoom). */
+export const EDITOR_PAGE_GHOST_OFFSET = 28;
 /** Espace supplémentaire sous une page dynamique pour les clones (px, avant zoom). */
 export const EDITOR_PAGE_GHOST_SPREAD = 38;
 /** Zone sous la dernière page pour le bouton « + Page » (px, avant zoom). */
-export const EDITOR_PAGE_TRAILING = 56;
+export const EDITOR_PAGE_TRAILING = EDITOR_PAGE_GAP;
+
+export function editorTrailingAfterPages(
+  pages: { kind: PageKind }[],
+  trailing = EDITOR_PAGE_TRAILING,
+): number {
+  const lastPage = pages[pages.length - 1];
+  return trailing + (lastPage?.kind === 'dynamic' ? EDITOR_PAGE_GHOST_SPREAD : 0);
+}
 
 export function editorGapAfterPage(
   pageKind: PageKind,
@@ -22,11 +32,12 @@ export function editorCanvasContentHeight(
   pageGap = EDITOR_PAGE_GAP,
   trailing = EDITOR_PAGE_TRAILING,
 ): number {
-  if (pages.length === 0) return pageH + trailing;
+  const trailingTotal = editorTrailingAfterPages(pages, trailing);
+  if (pages.length === 0) return pageH + trailingTotal;
   const gapTotal = pages
     .slice(0, -1)
     .reduce((sum, page) => sum + editorGapAfterPage(page.kind, pageGap), 0);
-  return pages.length * pageH + gapTotal + trailing;
+  return pages.length * pageH + gapTotal + trailingTotal;
 }
 
 interface EditorPagedCanvasProps {

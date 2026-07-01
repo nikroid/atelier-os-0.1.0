@@ -1,8 +1,10 @@
 import type { AppBackup } from '../types';
 import { db, now } from '../db/database';
 import { DEFAULT_SETTINGS } from '../types/settings';
+import { normalizePageTemplate } from './templatePages';
 import { isBuiltinTemplate } from './templateCatalog';
 import { normalizeTemplate } from './templatePages';
+import { customFontFromBackup, customFontToBackup } from './fontRegistry';
 
 export async function importBackupFromData(data: AppBackup): Promise<{ counts: Record<string, number> }> {
   if (!data.artists || !data.works || !data.contacts || !data.exhibitions) {
@@ -13,7 +15,7 @@ export async function importBackupFromData(data: AppBackup): Promise<{ counts: R
 
   await db.transaction(
     'rw',
-    [db.artists, db.works, db.contacts, db.exhibitions, db.templates, db.mailTemplates, db.settings],
+    [db.artists, db.works, db.contacts, db.exhibitions, db.templates, db.pageTemplates, db.customFonts, db.customPageFormats, db.mailTemplates, db.sentMails, db.settings],
     async () => {
       await Promise.all([
         db.artists.clear(),
@@ -21,7 +23,11 @@ export async function importBackupFromData(data: AppBackup): Promise<{ counts: R
         db.contacts.clear(),
         db.exhibitions.clear(),
         db.templates.clear(),
+        db.pageTemplates.clear(),
+        db.customFonts.clear(),
+        db.customPageFormats.clear(),
         db.mailTemplates.clear(),
+        db.sentMails.clear(),
       ]);
       await db.artists.bulkAdd(data.artists);
       await db.works.bulkAdd(data.works);
@@ -33,8 +39,22 @@ export async function importBackupFromData(data: AppBackup): Promise<{ counts: R
           .map((t) => normalizeTemplate(t));
         if (userTemplates.length) await db.templates.bulkAdd(userTemplates);
       }
+      if (data.pageTemplates?.length) {
+        const pageTemplates = data.pageTemplates.map((t) => normalizePageTemplate(t));
+        if (pageTemplates.length) await db.pageTemplates.bulkAdd(pageTemplates);
+      }
+      if (data.customFonts?.length) {
+        const fonts = data.customFonts.map((f) => customFontFromBackup(f));
+        if (fonts.length) await db.customFonts.bulkAdd(fonts);
+      }
+      if (data.customPageFormats?.length) {
+        await db.customPageFormats.bulkAdd(data.customPageFormats);
+      }
       if (data.mailTemplates?.length) {
         await db.mailTemplates.bulkAdd(data.mailTemplates);
+      }
+      if (data.sentMails?.length) {
+        await db.sentMails.bulkAdd(data.sentMails);
       }
       await db.settings.put({
         ...DEFAULT_SETTINGS,
@@ -54,30 +74,42 @@ export async function importBackupFromData(data: AppBackup): Promise<{ counts: R
       contacts: data.contacts.length,
       expositions: data.exhibitions.length,
       modeles: data.templates?.length ?? 0,
+      modelesDePage: data.pageTemplates?.length ?? 0,
+      polices: data.customFonts?.length ?? 0,
+      formats: data.customPageFormats?.length ?? 0,
+      mailsEnvoyes: data.sentMails?.length ?? 0,
     },
   };
 }
 
 export async function exportBackup(): Promise<AppBackup> {
-  const [artists, works, contacts, exhibitions, templates, mailTemplates, settings] = await Promise.all([
+  const [artists, works, contacts, exhibitions, templates, pageTemplates, customFonts, customPageFormats, mailTemplates, sentMails, settings] = await Promise.all([
     db.artists.toArray(),
     db.works.toArray(),
     db.contacts.toArray(),
     db.exhibitions.toArray(),
     db.templates.toArray(),
+    db.pageTemplates.toArray(),
+    db.customFonts.toArray(),
+    db.customPageFormats.toArray(),
     db.mailTemplates.toArray(),
+    db.sentMails.toArray(),
     db.settings.toArray(),
   ]);
 
   return {
-    version: '1.3',
+    version: '1.7',
     exportedAt: new Date().toISOString(),
     artists,
     works,
     contacts,
     exhibitions,
     templates,
+    pageTemplates,
+    customFonts: customFonts.map(customFontToBackup),
+    customPageFormats,
     mailTemplates,
+    sentMails,
     settings: settings[0],
   };
 }

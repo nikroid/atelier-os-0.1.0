@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SettingsProvider } from './hooks/useSettings';
+import { FontProvider } from './hooks/useFonts';
+import { PageFormatProvider } from './hooks/usePageFormats';
 import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/DashboardPage';
 import { WorksPage } from './pages/WorksPage';
@@ -23,7 +25,9 @@ function PageLoader() {
 export function App() {
   return (
     <SettingsProvider>
-      <BrowserRouter
+      <FontProvider>
+        <PageFormatProvider>
+        <BrowserRouter
         basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}
         future={{
           v7_startTransition: true,
@@ -64,7 +68,9 @@ export function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+        </PageFormatProvider>
+      </FontProvider>
     </SettingsProvider>
   );
 }

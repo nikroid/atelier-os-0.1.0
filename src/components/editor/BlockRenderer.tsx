@@ -1,6 +1,7 @@
-import { type CSSProperties, type DragEvent, type ReactNode } from 'react';
+import { type CSSProperties, type DragEvent, type ReactNode, useEffect } from 'react';
 import type { DocBlock } from '../../types/templates';
-import { fontFamilyCss } from '../../utils/fonts';
+import { useFontsOptional } from '../../hooks/useFonts';
+import { formatFontSizePt } from '../../utils/fonts';
 import { flexAxis } from '../../utils/flexDirection';
 import type { FlexAxis } from '../../utils/flexDirection';
 import { FIELD_CATALOG, isImageField, resolveField, resolveImage, type TemplateContext } from '../../utils/templateFields';
@@ -327,16 +328,17 @@ function getChildWrapStyle(
   return style;
 }
 
-function textStyle(block: DocBlock): CSSProperties {
+function textStyle(block: DocBlock, resolveCss: (family?: DocBlock['fontFamily']) => string): CSSProperties {
   return {
-    fontSize: block.fontSize ?? 11,
-    fontFamily: fontFamilyCss(block.fontFamily),
+    fontSize: formatFontSizePt(block.fontSize),
+    fontFamily: resolveCss(block.fontFamily),
     fontWeight: block.fontWeight ?? 'normal',
     textAlign: block.textAlign ?? 'left',
     color: block.color ?? 'inherit',
     width: block.writingMode && block.writingMode !== 'horizontal-tb' ? 'auto' : '100%',
     writingMode: block.writingMode,
-    textTransform: block.textTransform,
+    textTransform:
+      block.textTransform && block.textTransform !== 'none' ? block.textTransform : undefined,
     letterSpacing: block.textTransform === 'uppercase' ? '0.06em' : undefined,
     display: 'block',
     lineHeight: 1,
@@ -375,6 +377,11 @@ export function BlockRenderer({
   const isEdit = mode === 'edit';
   const isSelected = selectedId === block.id;
   const { hover: dropHover, setHover: setDropHover } = useDropHover();
+  const { resolveCss, ensureLoaded } = useFontsOptional();
+
+  useEffect(() => {
+    if (block.fontFamily) void ensureLoaded([block.fontFamily]);
+  }, [block.fontFamily, ensureLoaded]);
 
   const wrap = (
     children: ReactNode,
@@ -512,7 +519,7 @@ export function BlockRenderer({
   }
 
   if (block.type === 'text') {
-    const style = textStyle(block);
+    const style = textStyle(block, resolveCss);
     const raw = block.content || (isEdit ? 'Texte libre' : '');
     const text = resolveShortcodes(raw, ctx) || (isEdit ? 'Texte libre' : '');
     return wrap(<span style={style}>{text}</span>, 'tpl-text');
@@ -545,7 +552,7 @@ export function BlockRenderer({
       );
     }
     const text = resolveField(block.field, ctx) || def?.preview || `[${block.field}]`;
-    const style = textStyle(block);
+    const style = textStyle(block, resolveCss);
     return wrap(<span style={style}>{text}</span>, 'tpl-field');
   }
 

@@ -22,6 +22,8 @@ interface EditorPageSettingsProps {
   readonly?: boolean;
   onKindChange: (kind: PageKind) => void;
   onBackgroundPatch: (patch: Partial<DocTemplatePage>) => void;
+  onSaveAsPageTemplate?: () => void;
+  onLoadPageTemplate?: () => void;
   onRemove?: () => void;
 }
 
@@ -33,6 +35,8 @@ export function EditorPageSettings({
   readonly = false,
   onKindChange,
   onBackgroundPatch,
+  onSaveAsPageTemplate,
+  onLoadPageTemplate,
   onRemove,
 }: EditorPageSettingsProps) {
   const hasCustomBackground = pageHasCustomBackground(page);
@@ -53,7 +57,7 @@ export function EditorPageSettings({
         resetDisabled={!hasCustomBackground}
         hint={
           !hasCustomBackground
-            ? 'Utilise le fond par défaut du modèle (réglages du document).'
+            ? "Utilise l'arrière-plan du modèle (réglages du document)."
             : undefined
         }
       />
@@ -68,6 +72,20 @@ export function EditorPageSettings({
           ? 'Cette page sera dupliquée pour chaque œuvre sélectionnée à la génération PDF.'
           : 'Cette page n\'apparaît qu\'une seule fois dans le PDF (couverture, sommaire…).'}
       </p>
+      {!readonly && (onSaveAsPageTemplate || onLoadPageTemplate) && (
+        <div className="editor-page-template-actions">
+          {onLoadPageTemplate && (
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadPageTemplate}>
+              Charger un modèle de page
+            </button>
+          )}
+          {onSaveAsPageTemplate && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onSaveAsPageTemplate}>
+              Enregistrer cette page comme modèle
+            </button>
+          )}
+        </div>
+      )}
       {pageCount > 1 && onRemove && (
         <button type="button" className="btn btn-ghost btn-sm" onClick={onRemove}>
           Supprimer cette page

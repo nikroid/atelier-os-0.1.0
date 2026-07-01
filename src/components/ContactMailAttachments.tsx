@@ -14,6 +14,8 @@ import {
 } from '../utils/mailAttachments';
 import { generateTemplateDocumentBlob } from '../utils/templatePdf';
 import type { TemplateContext } from '../utils/templateFields';
+import { useFonts } from '../hooks/useFonts';
+import { collectFontRefsFromRoot, collectFontRefsFromTemplate } from '../utils/fontRegistry';
 
 interface ContactMailAttachmentsProps {
   disabled?: boolean;
@@ -31,6 +33,7 @@ export function ContactMailAttachments({
   const works = useWorks();
   const artists = useArtists();
   const artistMap = useArtistMap(artists);
+  const { ensureLoaded } = useFonts();
 
   const [pdfTemplateId, setPdfTemplateId] = useState('');
   const [selectedWorkIds, setSelectedWorkIds] = useState<Set<string>>(new Set());
@@ -104,6 +107,7 @@ export function ContactMailAttachments({
         artist: artistMap.get(work.artisteId),
       }));
 
+      await ensureLoaded(collectFontRefsFromTemplate(tpl));
       const rawBlob = await generateTemplateDocumentBlob(
         tpl,
         contexts,
@@ -118,6 +122,7 @@ export function ContactMailAttachments({
               pageSurface: page.surface,
             }),
           );
+          if (page.root) await ensureLoaded(collectFontRefsFromRoot(page.root));
         },
       );
 

@@ -1,8 +1,8 @@
 import jsPDF from 'jspdf';
 import type { DocTemplate } from '../types/templates';
-import { getPageDimensions } from './pageLayout';
+import { getTemplatePageDimensions } from './pageLayout';
 import type { TemplateContext } from './templateFields';
-import type { SurfaceBackground } from './backgroundStyle';
+import { DEFAULT_PAGE_BACKGROUND, type SurfaceBackground } from './backgroundStyle';
 import { expandTemplateForPdf, type ExpandedPdfPage } from './templatePages';
 
 export const MM_TO_PX = 3.78;
@@ -16,8 +16,9 @@ async function getHtml2Canvas() {
   return html2canvasModule.default;
 }
 
-export function getPdfRenderPixelSize(format: string, margin: number) {
-  const { w, h } = getPageDimensions(format);
+export function getPdfRenderPixelSize(template: Pick<DocTemplate, 'format' | 'formatRef' | 'widthMm' | 'heightMm' | 'margin'>) {
+  const { w, h } = getTemplatePageDimensions(template);
+  const margin = template.margin ?? 12;
   return { w, h, widthPx: w * MM_TO_PX, pageHeightPx: h * MM_TO_PX, marginPx: margin * MM_TO_PX };
 }
 
@@ -52,8 +53,8 @@ export async function captureTemplateToCanvas(
   rootElement?: HTMLElement | null,
   pageSurface?: SurfaceBackground,
 ): Promise<HTMLCanvasElement> {
-  const pdfSize = getPdfRenderPixelSize(template.format, template.margin);
-  const bg = pageSurface?.color ?? template.background ?? '#f5f2ed';
+  const pdfSize = getPdfRenderPixelSize(template);
+  const bg = pageSurface?.color ?? template.background ?? DEFAULT_PAGE_BACKGROUND;
   const el = rootElement ?? document.getElementById('template-pdf-render');
   if (!el) throw new Error('Élément de rendu introuvable');
 
@@ -94,12 +95,12 @@ export async function generateTemplateDocumentBlob(
   presetPages?: ExpandedPdfPage[],
   onBeforeEachPage?: (page: ExpandedPdfPage, index: number) => Promise<void>,
 ): Promise<Blob> {
-  const { w, h } = getPageDimensions(template.format);
+  const { w, h } = getTemplatePageDimensions(template);
   const expanded = presetPages ?? expandTemplateForPdf(template, contexts);
 
   const doc = new jsPDF({
     unit: 'mm',
-    format: template.format === 'a4' ? 'a4' : [w, h],
+    format: [w, h],
     orientation: w > h ? 'landscape' : 'portrait',
   });
 

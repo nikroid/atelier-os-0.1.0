@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { db } from '../db/database';
 import type { Artist, Work } from '../types';
 import { mergeTemplates } from '../utils/templateCatalog';
+import { sortPageTemplates } from '../utils/pageTemplateCatalog';
 
 function useObservable<T>(factory: () => Promise<T>, deps: unknown[] = []): T | undefined {
   const [data, setData] = useState<T>();
@@ -43,6 +44,10 @@ export function useMailTemplates() {
   return useObservable(() => db.mailTemplates.orderBy('updatedAt').reverse().toArray(), []);
 }
 
+export function usePageTemplates() {
+  return useObservable(async () => sortPageTemplates(await db.pageTemplates.toArray()), []);
+}
+
 /** Modèles par défaut + modèles personnels enregistrés. */
 export function useAllTemplates() {
   const userTemplates = useTemplates();
@@ -64,14 +69,16 @@ export function useArtistMap(artists: Artist[] | undefined) {
 
 export function useStats() {
   return useObservable(async () => {
-    const [artists, works, contacts, exhibitions, templates] = await Promise.all([
+    const [artists, works, contacts, exhibitions, templates, pageTemplates, customFonts] = await Promise.all([
       db.artists.count(),
       db.works.count(),
       db.contacts.count(),
       db.exhibitions.count(),
       db.templates.count(),
+      db.pageTemplates.count(),
+      db.customFonts.count(),
     ]);
-    return { artists, works, contacts, exhibitions, templates };
+    return { artists, works, contacts, exhibitions, templates, pageTemplates, customFonts };
   }, []);
 }
 

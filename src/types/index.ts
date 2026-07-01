@@ -1,3 +1,5 @@
+import type { CustomFontBackup } from './customFonts';
+
 export type ContactCategory =
   | 'journaliste'
   | 'galeriste'
@@ -74,7 +76,11 @@ export interface AppBackup {
   contacts: Contact[];
   exhibitions: Exhibition[];
   templates?: import('./templates').DocTemplate[];
+  pageTemplates?: import('./pageTemplates').PageTemplate[];
+  customFonts?: CustomFontBackup[];
+  customPageFormats?: import('./customPageFormats').CustomPageFormat[];
   mailTemplates?: import('./mail').MailTemplate[];
+  sentMails?: import('./sentMails').SentMailLog[];
   settings?: import('./settings').AppSettings;
 }
 

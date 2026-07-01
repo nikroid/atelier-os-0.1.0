@@ -72,10 +72,18 @@ export function imageDropShadowFilter(
   return `drop-shadow(${offsetX}px ${offsetY}px ${blur}px ${shadowColorToRgba(color, opacity)})`;
 }
 
+export type ImageObjectFit = 'cover' | 'contain' | 'fill';
+
+export const IMAGE_OBJECT_FIT_OPTIONS: { value: ImageObjectFit; label: string }[] = [
+  { value: 'cover', label: 'Couvrir' },
+  { value: 'contain', label: 'Contenir' },
+  { value: 'fill', label: 'Remplir' },
+];
+
 export function buildImageBlockLayout(
   width: string | number | undefined,
   height: string | number | undefined,
-  objectFit: 'cover' | 'contain',
+  objectFit: ImageObjectFit,
   fillParentHeight = false,
   centerInRow = false,
   imageShadow?: ImageDropShadow | LegacyImageShadowPreset | string,
@@ -118,10 +126,9 @@ export function buildImageBlockLayout(
       inner.height = '100%';
       inner.minHeight = 48;
     } else {
-      wrapper.height = 'auto';
+      wrapper.height = h;
       wrapper.minHeight = 48;
-      inner.height = 'auto';
-      inner.maxHeight = '100%';
+      inner.height = '100%';
     }
   } else {
     wrapper.height = h;
@@ -149,15 +156,19 @@ export function hasFixedImageHeight(height: string | number): boolean {
   return height !== 'auto' && !isPercentSize(height);
 }
 
-/** object-fit n'a d'effet visuel que lorsque la hauteur crée une boîte px fixe */
-export function imageObjectFitApplies(imageHeight: string | number | undefined): boolean {
-  return hasFixedImageHeight(resolveImageHeight(imageHeight));
+/** object-fit s'applique dès qu'une hauteur est définie (px ou %), pas en `auto`. */
+export function imageObjectFitApplies(
+  imageWidth?: string | number,
+  imageHeight?: string | number,
+): boolean {
+  void imageWidth;
+  return resolveImageHeight(imageHeight) !== 'auto';
 }
 
 export function getImageChildWrapLayout(
   child: DocBlock,
   parentDirection: 'row' | 'column' = 'column',
-  parentContainer?: DocBlock,
+  _parentContainer?: DocBlock,
 ): CSSProperties | null {
   if (!isImageBlock(child)) return null;
 
@@ -172,24 +183,21 @@ export function getImageChildWrapLayout(
   else style.width = w === 'auto' ? 'auto' : w;
 
   if (parentDirection === 'column') {
+    if (h !== 'auto') {
+      style.height = h;
+      style.flexShrink = 0;
+      if (isPercentSize(h)) style.minHeight = 48;
+    }
     return style;
   }
-
-  const parentRowHasHeight = Boolean(
-    parentContainer?.height && parentContainer.height !== 'auto',
-  );
 
   if (h === 'auto') {
     style.height = 'auto';
     style.minHeight = 48;
   } else if (isPercentSize(h)) {
-    if (parentRowHasHeight) {
-      style.height = '100%';
-      style.flexShrink = 0;
-    } else {
-      style.height = 'auto';
-      style.minHeight = 48;
-    }
+    style.height = h;
+    style.flexShrink = 0;
+    style.minHeight = 48;
   } else {
     style.height = h;
     style.flexShrink = 0;

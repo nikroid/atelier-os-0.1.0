@@ -3,11 +3,17 @@ import { ContactGroupMailModal } from '../components/ContactGroupMailModal';
 import { EmptyState } from '../components/EmptyState';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
+import { SentMailDetailModal } from '../components/SentMailDetailModal';
+import { SentMailHistoryList } from '../components/SentMailHistoryList';
 import { db, now, uid } from '../db/database';
 import { useContacts } from '../hooks/useDatabase';
+import { useSentMails } from '../hooks/useSentMails';
 import type { Contact, ContactCategory } from '../types';
+import type { SentMailLog } from '../types/sentMails';
 import { CONTACT_CATEGORIES } from '../types';
 import { contactFullName } from '../utils/helpers';
+
+type ContactsTab = 'contacts' | 'history';
 
 const emptyContact = (): Omit<Contact, 'id' | 'createdAt' | 'updatedAt'> => ({
   nom: '',
@@ -21,6 +27,10 @@ const emptyContact = (): Omit<Contact, 'id' | 'createdAt' | 'updatedAt'> => ({
 
 export function ContactsPage() {
   const contacts = useContacts();
+  const sentMails = useSentMails();
+  const [activeTab, setActiveTab] = useState<ContactsTab>('contacts');
+  const [historyContactFilter, setHistoryContactFilter] = useState<string | null>(null);
+  const [selectedMailLog, setSelectedMailLog] = useState<SentMailLog | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [mailModalOpen, setMailModalOpen] = useState(false);
   const [mailRecipients, setMailRecipients] = useState<Contact[]>([]);
@@ -123,6 +133,11 @@ export function ContactsPage() {
     setMailModalOpen(true);
   };
 
+  const openContactHistory = (contact: Contact) => {
+    setHistoryContactFilter(contact.id);
+    setActiveTab('history');
+  };
+
   return (
     <>
       <PageHeader
@@ -135,6 +150,41 @@ export function ContactsPage() {
         }
       />
 
+      <div className="toolbar contacts-page-tabs">
+        <div className="filter-pills">
+          <button
+            type="button"
+            className={activeTab === 'contacts' ? 'active' : ''}
+            onClick={() => setActiveTab('contacts')}
+          >
+            Contacts
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'history' ? 'active' : ''}
+            onClick={() => {
+              setActiveTab('history');
+              setHistoryContactFilter(null);
+            }}
+          >
+            Historique
+            {sentMails && sentMails.length > 0 && (
+              <span className="contacts-tab-count"> ({sentMails.length})</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'history' ? (
+        <SentMailHistoryList
+          logs={sentMails ?? []}
+          contacts={contacts}
+          contactFilterId={historyContactFilter}
+          onSelect={setSelectedMailLog}
+          onClearFilter={() => setHistoryContactFilter(null)}
+        />
+      ) : (
+        <>
       <div className="toolbar">
         <div className="filter-pills">
           <button
@@ -192,13 +242,22 @@ export function ContactsPage() {
                 </div>
                 <div className="list-actions">
                   {hasEmail && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => openSingleMail(contact)}
-                    >
-                      Email
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => openSingleMail(contact)}
+                      >
+                        Email
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => openContactHistory(contact)}
+                      >
+                        Historique
+                      </button>
+                    </>
                   )}
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(contact)}>
                     Modifier
@@ -212,6 +271,14 @@ export function ContactsPage() {
           })}
         </div>
       )}
+        </>
+      )}
+
+      <SentMailDetailModal
+        log={selectedMailLog}
+        contacts={contacts}
+        onClose={() => setSelectedMailLog(null)}
+      />
 
       <ContactGroupMailModal
         open={mailModalOpen}
