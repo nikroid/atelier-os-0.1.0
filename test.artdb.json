@@ -9,7 +9,7 @@
       "bio_en": "Visual artist exploring the boundaries between nature and technology through immersive installations and paintings.",
       "site": "https://nicolaslabrunye.fr",
       "instagram": "@nicolaslabrunye",
-      "email": "contact@example.com",
+      "email": "<script>alert(1)<\script>contact@example.com",
       "photo": "",
       "createdAt": "2026-07-04T22:18:08.959Z",
       "updatedAt": "2026-07-04T22:18:08.959Z"
@@ -17,10 +17,10 @@
   ],
   "works": [
     {
-      "id": "work_001",
+      "id": "work_<script>alert(1)<\script>001",
       "ref": "ART-2026-001",
       "titre": "Le Vagabond",
-      "artisteId": "artist_demo",
+      "artisteId": "_",
       "annee": 2026,
       "technique": "Huile sur toile",
       "dimensions": "120 × 80 cm",
