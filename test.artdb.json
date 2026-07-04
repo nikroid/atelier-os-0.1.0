@@ -1,0 +1,203 @@
+{
+  "version": "1.7",
+  "exportedAt": "2026-07-04T22:23:01.437Z",
+  "artists": [
+    {
+      "id": "artist_demo",
+      "nom": "Nicolas Labrunye",
+      "bio_fr": "Artiste plasticien, Nicolas Labrunye explore les frontières entre nature et technologie à travers des installations immersives et des œuvres sur toile.",
+      "bio_en": "Visual artist exploring the boundaries between nature and technology through immersive installations and paintings.",
+      "site": "https://nicolaslabrunye.fr",
+      "instagram": "@nicolaslabrunye",
+      "email": "contact@example.com",
+      "photo": "",
+      "createdAt": "2026-07-04T22:18:08.959Z",
+      "updatedAt": "2026-07-04T22:18:08.959Z"
+    }
+  ],
+  "works": [
+    {
+      "id": "work_001",
+      "ref": "ART-2026-001",
+      "titre": "Le Vagabond",
+      "artisteId": "artist_demo",
+      "annee": 2026,
+      "technique": "Huile sur toile",
+      "dimensions": "120 × 80 cm",
+      "prix": 2500,
+      "description": "Une figure solitaire traversant un paysage onirique.",
+      "images": [],
+      "statut": "disponible",
+      "certificat": true,
+      "createdAt": "2026-07-04T22:18:08.959Z",
+      "updatedAt": "2026-07-04T22:18:08.959Z"
+    },
+    {
+      "id": "work_002",
+      "ref": "ART-2026-002",
+      "titre": "Forêt Algorithmique",
+      "artisteId": "artist_demo",
+      "annee": 2025,
+      "technique": "Acrylique et encre sur papier",
+      "dimensions": "70 × 50 cm",
+      "prix": 1200,
+      "description": "Arbres générés par des processus computationnels.",
+      "images": [],
+      "statut": "disponible",
+      "certificat": true,
+      "createdAt": "2026-07-04T22:18:08.959Z",
+      "updatedAt": "2026-07-04T22:18:08.959Z"
+    },
+    {
+      "id": "work_4bc4012f",
+      "ref": "ART-2026-003",
+      "titre": "Test",
+      "artisteId": "artist_demo",
+      "annee": 2026,
+      "technique": "",
+      "dimensions": "",
+      "prix": null,
+      "description": "",
+      "images": [],
+      "statut": "disponible",
+      "certificat": true,
+      "createdAt": "2026-07-04T22:19:21.054Z",
+      "updatedAt": "2026-07-04T22:19:21.054Z"
+    }
+  ],
+  "contacts": [
+    {
+      "id": "contact_001",
+      "nom": "Dupont",
+      "prenom": "Jean",
+      "categorie": "journaliste",
+      "email": "jean.dupont@artpress.fr",
+      "telephone": "+33 6 12 34 56 78",
+      "organisation": "Art Press",
+      "notes": "Spécialisé art contemporain",
+      "createdAt": "2026-07-04T22:18:08.959Z",
+      "updatedAt": "2026-07-04T22:18:08.959Z"
+    },
+    {
+      "id": "contact_002",
+      "nom": "Martin",
+      "prenom": "Sophie",
+      "categorie": "galeriste",
+      "email": "sophie@galerie-exemple.fr",
+      "telephone": "+33 1 42 00 00 00",
+      "organisation": "Galerie Exemple",
+      "notes": "",
+      "createdAt": "2026-07-04T22:18:08.959Z",
+      "updatedAt": "2026-07-04T22:18:08.959Z"
+    },
+    {
+      "id": "contact_570d2dbd",
+      "nom": "Test",
+      "prenom": "Nico",
+      "categorie": "journaliste",
+      "email": "nik_lab@hotmail.fr",
+      "telephone": "",
+      "organisation": "",
+      "notes": "",
+      "createdAt": "2026-07-04T22:21:52.721Z",
+      "updatedAt": "2026-07-04T22:21:52.721Z"
+    }
+  ],
+  "exhibitions": [
+    {
+      "id": "expo_001",
+      "titre": "Automne 2026",
+      "lieu": "Atelier collectif, Paris",
+      "date_debut": "2026-09-15",
+      "date_fin": "2026-10-30",
+      "texte_curatorial": "Cette exposition réunit des œuvres qui interrogent notre rapport au vivant à l'ère numérique.",
+      "artisteId": "artist_demo",
+      "oeuvreIds": [
+        "work_001",
+        "work_002"
+      ],
+      "affiche": "",
+      "createdAt": "2026-07-04T22:18:08.959Z",
+      "updatedAt": "2026-07-04T22:18:08.959Z"
+    }
+  ],
+  "templates": [],
+  "pageTemplates": [],
+  "customFonts": [],
+  "customPageFormats": [],
+  "mailTemplates": [
+    {
+      "id": "mailtpl_8372b6ff",
+      "nom": "Prise de contact galerie",
+      "subject": "Présentation de mon travail",
+      "body": "Bonjour,\n\nJe me permets de vous contacter pour vous présenter mon travail artistique.\n\nCordialement,",
+      "createdAt": "2026-07-04T22:21:56.633Z",
+      "updatedAt": "2026-07-04T22:21:56.633Z"
+    },
+    {
+      "id": "mailtpl_8d21a050",
+      "nom": "Invitation exposition",
+      "subject": "Invitation — Exposition",
+      "body": "Bonjour,\n\nJe vous invite à découvrir ma prochaine exposition.\n\nCordialement,",
+      "createdAt": "2026-07-04T22:21:56.633Z",
+      "updatedAt": "2026-07-04T22:21:56.633Z"
+    },
+    {
+      "id": "mailtpl_cdf236bb",
+      "nom": "Dossier de presse",
+      "subject": "Dossier de presse",
+      "body": "Bonjour,\n\nJe vous transmets le dossier de presse en pièce jointe.\n\nCordialement,",
+      "createdAt": "2026-07-04T22:21:56.633Z",
+      "updatedAt": "2026-07-04T22:21:56.633Z"
+    },
+    {
+      "id": "mailtpl_f4bd2e77",
+      "nom": "Envoi catalogue",
+      "subject": "Catalogue — [Titre exposition]",
+      "body": "Bonjour,\n\nVeuillez trouver ci-joint le catalogue de mon exposition.\n\nBien cordialement,",
+      "createdAt": "2026-07-04T22:21:56.633Z",
+      "updatedAt": "2026-07-04T22:21:56.633Z"
+    }
+  ],
+  "sentMails": [
+    {
+      "sentAt": "2026-07-04T22:22:35.392Z",
+      "subject": "Catalogue — [Titre exposition]",
+      "body": "Bonjour,\n\nVeuillez trouver ci-joint le catalogue de mon exposition.\n\nBien cordialement,",
+      "recipientEmails": [
+        "nik_lab@hotmail.fr"
+      ],
+      "contactIds": [
+        "contact_570d2dbd"
+      ],
+      "isGroup": false,
+      "mailTemplateId": "mailtpl_f4bd2e77",
+      "gmailMessageId": "19f2f39f5a588587",
+      "attachments": [],
+      "id": "mail_09d0b877",
+      "createdAt": "2026-07-04T22:22:35.393Z"
+    },
+    {
+      "sentAt": "2026-07-04T22:22:07.198Z",
+      "subject": "Catalogue — [Titre exposition]",
+      "body": "Bonjour,\n\nVeuillez trouver ci-joint le catalogue de mon exposition.\n\nBien cordialement,",
+      "recipientEmails": [
+        "nik_lab@hotmail.fr"
+      ],
+      "contactIds": [
+        "contact_570d2dbd"
+      ],
+      "isGroup": false,
+      "mailTemplateId": "mailtpl_f4bd2e77",
+      "gmailMessageId": "19f2f3987771cae4",
+      "attachments": [],
+      "id": "mail_624c2cd5",
+      "createdAt": "2026-07-04T22:22:07.199Z"
+    }
+  ],
+  "settings": {
+    "id": "app",
+    "mode": "artist",
+    "updatedAt": "2026-07-04T22:20:08.736Z"
+  }
+}
